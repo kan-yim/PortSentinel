@@ -19,7 +19,11 @@ class TestIncidentReportParser:
     @pytest.fixture
     def parser(self):
         """Create a parser instance with mocked API key."""
-        with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-api-key'}):
+        with patch.dict('os.environ', {
+            'AZURE_OPENAI_API_KEY': 'test-api-key',
+            'AZURE_OPENAI_ENDPOINT': 'https://test.openai.azure.com/',
+            'AZURE_OPENAI_DEPLOYMENT': 'gpt-4o'
+        }):
             return IncidentReportParser(model_name="gpt-4o", temperature=0.0)
 
     @pytest.fixture
@@ -29,7 +33,11 @@ class TestIncidentReportParser:
 
     def test_parser_initialization_with_api_key(self):
         """Test parser initializes correctly with API key in environment."""
-        with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key-123'}):
+        with patch.dict('os.environ', {
+            'AZURE_OPENAI_API_KEY': 'test-key-123',
+            'AZURE_OPENAI_ENDPOINT': 'https://test.openai.azure.com/',
+            'AZURE_OPENAI_DEPLOYMENT': 'gpt-4o'
+        }):
             parser = IncidentReportParser()
             assert parser.api_key == 'test-key-123'
             assert parser.llm is not None
@@ -38,14 +46,18 @@ class TestIncidentReportParser:
     def test_parser_initialization_without_api_key(self):
         """Test parser raises error when API key is missing."""
         with patch.dict('os.environ', {}, clear=True):
-            with pytest.raises(ValueError, match="OpenAI API key must be provided"):
+            with pytest.raises(ValueError, match="Azure OpenAI API key must be provided"):
                 IncidentReportParser()
 
     def test_parser_initialization_with_custom_model(self):
         """Test parser initializes with custom model name."""
-        with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'}):
-            parser = IncidentReportParser(model_name="gpt-3.5-turbo")
-            assert parser.llm.model_name == "gpt-3.5-turbo"
+        with patch.dict('os.environ', {
+            'AZURE_OPENAI_API_KEY': 'test-key',
+            'AZURE_OPENAI_ENDPOINT': 'https://test.openai.azure.com/',
+            'AZURE_OPENAI_DEPLOYMENT': 'gpt-35-turbo'
+        }):
+            parser = IncidentReportParser(model_name="gpt-35-turbo")
+            assert parser.deployment_name == "gpt-35-turbo"
 
     def test_parse_email_container_not_found(self, parser, fixed_timestamp):
         """Test parsing email about container not found error."""
@@ -313,15 +325,19 @@ class TestConvenienceFunction:
             raw_text="Test text"
         )
 
-        with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'}):
+        with patch.dict('os.environ', {
+            'AZURE_OPENAI_API_KEY': 'test-key',
+            'AZURE_OPENAI_ENDPOINT': 'https://test.openai.azure.com/',
+            'AZURE_OPENAI_DEPLOYMENT': 'gpt-35-turbo'
+        }):
             result = parse_incident_report(
                 source_type="Email",
                 raw_text="Test text",
-                model_name="gpt-3.5-turbo"
+                model_name="gpt-35-turbo"
             )
 
         # Verify parser was created with correct parameters
-        mock_parser_class.assert_called_once_with(model_name="gpt-3.5-turbo", api_key=None)
+        mock_parser_class.assert_called_once_with(model_name="gpt-35-turbo", api_key=None)
         # Verify parse was called
         mock_parser_instance.parse.assert_called_once_with(source_type="Email", raw_text="Test text")
         # Verify result
@@ -355,7 +371,11 @@ class TestIntegrationScenarios:
     @pytest.fixture
     def parser_with_env(self):
         """Create parser with environment-based API key."""
-        with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-integration-key'}):
+        with patch.dict('os.environ', {
+            'AZURE_OPENAI_API_KEY': 'test-integration-key',
+            'AZURE_OPENAI_ENDPOINT': 'https://test.openai.azure.com/',
+            'AZURE_OPENAI_DEPLOYMENT': 'gpt-4o'
+        }):
             return IncidentReportParser()
 
     def test_multiple_containers_issue(self, parser_with_env):

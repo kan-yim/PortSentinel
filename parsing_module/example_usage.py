@@ -173,10 +173,10 @@ def main():
     print("  3. Run: python example_usage.py")
 
     # Uncomment these lines when ready to test with actual API
-    # example_1_email_container_error()
-    # example_2_sms_vessel_error()
-    # example_3_call_transcript_edi()
-    # example_4_custom_parser()
+    example_1_email_container_error()
+    example_2_sms_vessel_error()
+    example_3_call_transcript_edi()
+    example_4_custom_parser()
 
     print("\n" + "=" * 80)
     print("Examples completed!")

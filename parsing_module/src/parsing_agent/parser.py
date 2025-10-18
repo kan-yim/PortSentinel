@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+from langchain_openai import AzureChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
@@ -35,34 +35,52 @@ class IncidentReportParser:
         self,
         model_name: str = "gpt-4o",
         temperature: float = 0.0,
-        api_key: Optional[str] = None
+        api_key: Optional[str] = None,
+        azure_endpoint: Optional[str] = None,
+        api_version: Optional[str] = None,
+        deployment_name: Optional[str] = None
     ):
         """
         Initialize the incident report parser.
 
         Args:
-            model_name: OpenAI model to use (default: gpt-4o, alternatives: gpt-3.5-turbo)
+            model_name: Model deployment name for Azure OpenAI (default: gpt-4o)
             temperature: Sampling temperature (0.0 for deterministic, higher for creative)
-            api_key: OpenAI API key (if not provided, reads from OPENAI_API_KEY env var)
+            api_key: Azure OpenAI API key (if not provided, reads from AZURE_OPENAI_API_KEY env var)
+            azure_endpoint: Azure OpenAI endpoint URL (if not provided, reads from AZURE_OPENAI_ENDPOINT env var)
+            api_version: Azure OpenAI API version (if not provided, reads from AZURE_OPENAI_API_VERSION env var, defaults to "2024-02-15-preview")
+            deployment_name: Azure deployment name (if not provided, uses model_name or reads from AZURE_OPENAI_DEPLOYMENT env var)
 
         Raises:
-            ValueError: If API key is not provided and not found in environment
+            ValueError: If required Azure credentials are not provided
         """
-        # Get API key from parameter or environment
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        # Get Azure credentials from parameters or environment
+        self.api_key = api_key or os.getenv("AZURE_OPENAI_API_KEY")
+        self.azure_endpoint = azure_endpoint or os.getenv("AZURE_OPENAI_ENDPOINT")
+        self.api_version = api_version or os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+        self.deployment_name = deployment_name or os.getenv("AZURE_OPENAI_DEPLOYMENT") or model_name
+
         if not self.api_key:
             raise ValueError(
-                "OpenAI API key must be provided either via api_key parameter "
-                "or OPENAI_API_KEY environment variable"
+                "Azure OpenAI API key must be provided either via api_key parameter "
+                "or AZURE_OPENAI_API_KEY environment variable"
+            )
+
+        if not self.azure_endpoint:
+            raise ValueError(
+                "Azure OpenAI endpoint must be provided either via azure_endpoint parameter "
+                "or AZURE_OPENAI_ENDPOINT environment variable"
             )
 
         # Initialize the output parser with the IncidentReport model
         self.output_parser = PydanticOutputParser(pydantic_object=IncidentReport)
 
-        # Initialize the OpenAI LLM
-        self.llm = ChatOpenAI(
-            model=model_name,
+        # Initialize Azure OpenAI LLM
+        self.llm = AzureChatOpenAI(
+            azure_deployment=self.deployment_name,
+            api_version=self.api_version,
             temperature=temperature,
+            azure_endpoint=self.azure_endpoint,
             api_key=self.api_key
         )
 

@@ -1,0 +1,45 @@
+{
+  "original_report": {
+    "incident_id": "EDI-001",
+    "source_type": "SMS",
+    "received_timestamp_utc": "2025-10-18T12:00:00Z",
+    "reported_timestamp_hint": null,
+    "urgency": "High",
+    "affected_module": "EDI/API",
+    "entities": [
+      {
+        "type": "correlation_id",
+        "value": "EDI-MSG-789456"
+      }
+    ],
+    "error_code": null,
+    "problem_summary": "EDI message stuck in ERROR status, no acknowledgment received",
+    "potential_cause_hint": null,
+    "raw_text": "Alert: EDI message EDI-MSG-789456 stuck in ERROR status for 2 hours. No acknowledgment received from partner system."
+  },
+  "retrieved_sops": [
+    {
+      "content": "Title: EDI: EDI Message Timeout or Delay in Acknowledgment\n\nOverview:\nRough Flow of the process: Message Parsed → Acknowledgment Expected → No Acknowledgment → Message Stuck in ERROR Status → Check Logs → Inspect EDI Messages → Manually Trigger Acknowledgment → Message Status Updated to ACKED → Issue Resolved\n\nThe issue occurs when an EDI message (e.g., IFTMIN) is received and processed (status: PARSED) but is not properly acknowledged. This can be due to server delays, network issues, or other factors. As a result, the message remains in the ERROR status and doesn’t have the expected ack_at timestamp, preventing it from being processed further, which disrupts data flow and shipment tracking.\n\nFor example, if PSA receives an IFTMIN message from LINE-PSA but the acknowledgment isn't sent to the sender (PSA-TOS), the message stays in ERROR status with a NULL value for ack_at. The lack of acknowledgment means that the message isn’t processed or moved forward.",
+      "metadata": {
+        "sop_title": "EDI: EDI Message Timeout or Delay in Acknowledgment",
+        "chunk_type": "overview",
+        "source": "knowledge_base_structured.json",
+        "module": "EDI/API",
+        "sop_index": 75
+      },
+      "score": 0.6497696042060852
+    },
+    {
+      "content": "Title: EDI: EDI Message Timeout or Delay in Acknowledgment\n\nPreconditions:\nAccess to the EDI message table (edi_message) in the database schema is available.\n\nThe message has been received and processed (status: PARSED), but no acknowledgment has occurred yet.\n\nThe message is in the ERROR status and doesn’t have the correct ack_at timestamp. Specifically, it has the value NULL in ack_at.\n\nLog file: edi_message_processing.log",
+      "metadata": {
+        "sop_index": 75,
+        "source": "knowledge_base_structured.json",
+        "module": "EDI/API",
+        "chunk_type": "preconditions",
+        "sop_title": "EDI: EDI Message Timeout or Delay in Acknowledgment"
+      },
+      "score": 0.6809523701667786
+    }
+  ],
+  "retrieval_summary": "Retrieved 2 relevant SOP(s) for incident EDI-001. Top match: EDI: EDI Message Timeout or Delay in Acknowledgment (similarity score: 0.65) Affected module: EDI/API"
+}

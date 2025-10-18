@@ -1,0 +1,227 @@
+[
+  {
+    "original_report": {
+      "incident_id": "ALR-861631",
+      "source_type": "Email",
+      "received_timestamp_utc": "2025-10-18T10:00:00Z",
+      "reported_timestamp_hint": null,
+      "urgency": "High",
+      "affected_module": "Vessel",
+      "entities": [
+        {
+          "type": "vessel_name",
+          "value": "LIONCITY07"
+        },
+        {
+          "type": "error_code",
+          "value": "VESSEL_ERR_4"
+        }
+      ],
+      "error_code": "VESSEL_ERR_4",
+      "problem_summary": "Unable to create vessel advice due to duplicate system vessel name",
+      "potential_cause_hint": null,
+      "raw_text": "Subject: Unable to create vessel advice\n\nHi support,\n\nI'm getting error VESSEL_ERR_4 when trying to create vessel advice for LIONCITY07. The error says 'System Vessel Name has been used by other vessel advice'. Customer needs urgent resolution.\n\nRegards,\nJohn Doe"
+    },
+    "retrieved_sops": [
+      {
+        "content": "Title: VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice\n\nOverview:\nResolve duplicate key error on creating vessel advice VESSEL_ERR_4 (only one active advice per system_vessel_name).",
+        "metadata": {
+          "sop_title": "VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice",
+          "module": "Vessel",
+          "source": "knowledge_base_structured.json",
+          "sop_index": 74,
+          "chunk_type": "overview"
+        },
+        "score": 0.4256281554698944
+      },
+      {
+        "content": "Title: VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice\n\nPreconditions:\nYou have access to DB schema with tables vessel_advice and berthing_application\n\nLog file: vessel_advice_service.log",
+        "metadata": {
+          "module": "Vessel",
+          "source": "knowledge_base_structured.json",
+          "chunk_type": "preconditions",
+          "sop_index": 74,
+          "sop_title": "VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice"
+        },
+        "score": 0.5525842905044556
+      },
+      {
+        "content": "Title: VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice\n\nResolution Steps:\nConfirm Error in Logs \n\ngrep -i \"VESSEL_ERR_4\" vessel_advice_service.log\n\nInspect Existing Advice Rows\n\nSELECT vessel_advice_no, system_vessel_name, effective_start_datetime, effective_end_datetime, system_vessel_name_active FROM vessel_advice WHERE system_vessel_name = :system_vessel_name ORDER BY effective_start_datetime;\n\nidentify active advice: row with effective_end_datetime IS NULL.\n\nRecord down\n\n:active_vessel_advice_no (if any)\n\nCheck Port Programs Referencing Active Advice (Active only)\n\nSELECT application_no, vessel_advice_no, vessel_close_datetime, deleted, berthing_status FROM berth_application WHERE vessel_advice_no = :active_vessel_advice_no AND vessel_close_datetime IS NULL AND berthing_status = 'A' AND deleted = 'N';\n\nIf result set not empty → active port programs exist.\n\nDecision Logic\n\nIf NO active advice (no row with effective_end_datetime IS NULL): the duplicate error shouldn’t occur—recheck.\n\nActive advice exists & NO active port programs: proceed to expire advice.\n\nActive advice exists & active port programs present: close/archive them first, then expire advice.\n\nClose Active Port Programs\n\nDefine closure timestamp (prefer consistent UTC: e.g. '2025-10-06 00:00:00').\n\nStatus code definitions (confirm internally):\n\nberthing_status: 'A' = Active, 'C' = Closed\n\nDeleted: 'N' = Normal, 'A' = Archived/Removed\n\nUPDATE berth_application SET vessel_close_datetime = :CLOSE_TS, berthing_status = 'C', deleted = 'A' WHERE vessel_advice_no = :vessel_advice_no AND vessel_close_datetime IS NULL AND berthing_status = 'A' AND deleted = 'N';\n\nExpire the Active Advice\n\nUPDATE vessel_advice SET effective_end_datetime = :CLOSE_TS WHERE vessel_advice_no = :vessel_advice_no AND effective_end_datetime IS NULL;",
+        "metadata": {
+          "chunk_type": "resolution",
+          "sop_index": 74,
+          "source": "knowledge_base_structured.json",
+          "sop_title": "VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice",
+          "module": "Vessel"
+        },
+        "score": 0.6800298690795898
+      }
+    ],
+    "retrieval_summary": "Retrieved 3 relevant SOP(s) for incident ALR-861631. Top match: VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice (similarity score: 0.43) Affected module: Vessel Error code: VESSEL_ERR_4"
+  },
+  {
+    "original_report": {
+      "incident_id": "CONT-12345",
+      "source_type": "Email",
+      "received_timestamp_utc": "2025-10-18T11:00:00Z",
+      "reported_timestamp_hint": null,
+      "urgency": "Medium",
+      "affected_module": "Container",
+      "entities": [
+        {
+          "type": "container_number",
+          "value": "CMAU0000020"
+        }
+      ],
+      "error_code": null,
+      "problem_summary": "Customer seeing duplicate container CMAU0000020 in the system",
+      "potential_cause_hint": null,
+      "raw_text": "Subject: Duplicate container issue\n\nCustomer reports seeing container CMAU0000020 appearing twice in the system. Please investigate."
+    },
+    "retrieved_sops": [
+      {
+        "content": "Title: CNTR: Duplicate Container information received\n\nResolution Steps:\nVerify in DB \n\nSELECT * FROM container WHERE cntr_no = :CONTAINER_NO ORDER BY created_at DESC;\n\nKeep the latest record (highest created_at) and delete earlier records — with a preview and a safe, bounded delete.\n\nSELECT c.* FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;\n\nSafe delete (keep latest only)\n\nDELETE c FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;",
+        "metadata": {
+          "sop_index": 73,
+          "sop_title": "CNTR: Duplicate Container information received",
+          "source": "knowledge_base_structured.json",
+          "module": "Container",
+          "chunk_type": "resolution"
+        },
+        "score": 0.7426795363426208
+      },
+      {
+        "content": "Title: CNTR: Duplicate Container information received\n\nOverview:\nReceived with conflicting duplicate entry for container information. Later message had older timestamp; last-writer-wins regressed status.",
+        "metadata": {
+          "sop_index": 73,
+          "module": "Container",
+          "source": "knowledge_base_structured.json",
+          "chunk_type": "overview",
+          "sop_title": "CNTR: Duplicate Container information received"
+        },
+        "score": 0.755447506904602
+      },
+      {
+        "content": "Title: CNTR: Weight and size attributes for CONTAINER_ID do not align with manifest data\n\nOverview:\nWeight and size attributes for CONTAINER_ID do not align with manifest data. OMS lists 22G1 whereas the EDI intake translated to 45R1—slot planning at PSA Pasir Panjang misallocated. Voyage QS19; last known location Block B3. Suspect duplicate CODECO from yesterday caused field overwrite.",
+        "metadata": {
+          "module": "Container",
+          "sop_index": 6,
+          "sop_title": "CNTR: Weight and size attributes for CONTAINER_ID do not align with manifest data",
+          "source": "knowledge_base_structured.json",
+          "chunk_type": "overview"
+        },
+        "score": 0.7915259599685669
+      }
+    ],
+    "retrieval_summary": "Retrieved 3 relevant SOP(s) for incident CONT-12345. Top match: CNTR: Duplicate Container information received (similarity score: 0.74) Affected module: Container"
+  },
+  {
+    "original_report": {
+      "incident_id": "EDI-001",
+      "source_type": "SMS",
+      "received_timestamp_utc": "2025-10-18T12:00:00Z",
+      "reported_timestamp_hint": null,
+      "urgency": "High",
+      "affected_module": "EDI/API",
+      "entities": [
+        {
+          "type": "correlation_id",
+          "value": "EDI-MSG-789456"
+        }
+      ],
+      "error_code": null,
+      "problem_summary": "EDI message stuck in ERROR status, no acknowledgment received",
+      "potential_cause_hint": null,
+      "raw_text": "Alert: EDI message EDI-MSG-789456 stuck in ERROR status for 2 hours. No acknowledgment received from partner system."
+    },
+    "retrieved_sops": [
+      {
+        "content": "Title: EDI: EDI Message Timeout or Delay in Acknowledgment\n\nOverview:\nRough Flow of the process: Message Parsed → Acknowledgment Expected → No Acknowledgment → Message Stuck in ERROR Status → Check Logs → Inspect EDI Messages → Manually Trigger Acknowledgment → Message Status Updated to ACKED → Issue Resolved\n\nThe issue occurs when an EDI message (e.g., IFTMIN) is received and processed (status: PARSED) but is not properly acknowledged. This can be due to server delays, network issues, or other factors. As a result, the message remains in the ERROR status and doesn’t have the expected ack_at timestamp, preventing it from being processed further, which disrupts data flow and shipment tracking.\n\nFor example, if PSA receives an IFTMIN message from LINE-PSA but the acknowledgment isn't sent to the sender (PSA-TOS), the message stays in ERROR status with a NULL value for ack_at. The lack of acknowledgment means that the message isn’t processed or moved forward.",
+        "metadata": {
+          "sop_title": "EDI: EDI Message Timeout or Delay in Acknowledgment",
+          "chunk_type": "overview",
+          "source": "knowledge_base_structured.json",
+          "module": "EDI/API",
+          "sop_index": 75
+        },
+        "score": 0.6497696042060852
+      },
+      {
+        "content": "Title: EDI: EDI Message Timeout or Delay in Acknowledgment\n\nPreconditions:\nAccess to the EDI message table (edi_message) in the database schema is available.\n\nThe message has been received and processed (status: PARSED), but no acknowledgment has occurred yet.\n\nThe message is in the ERROR status and doesn’t have the correct ack_at timestamp. Specifically, it has the value NULL in ack_at.\n\nLog file: edi_message_processing.log",
+        "metadata": {
+          "sop_index": 75,
+          "source": "knowledge_base_structured.json",
+          "module": "EDI/API",
+          "chunk_type": "preconditions",
+          "sop_title": "EDI: EDI Message Timeout or Delay in Acknowledgment"
+        },
+        "score": 0.6809523701667786
+      }
+    ],
+    "retrieval_summary": "Retrieved 2 relevant SOP(s) for incident EDI-001. Top match: EDI: EDI Message Timeout or Delay in Acknowledgment (similarity score: 0.65) Affected module: EDI/API"
+  },
+  {
+    "original_report": {
+      "incident_id": "ALR-861600",
+      "source_type": "Email",
+      "received_timestamp_utc": "2025-10-18T10:31:30.738350Z",
+      "reported_timestamp_hint": null,
+      "urgency": "Medium",
+      "affected_module": "Container",
+      "entities": [
+        {
+          "type": "container_number",
+          "value": "CMAU0000020"
+        },
+        {
+          "type": "user_id",
+          "value": "Kenny"
+        },
+        {
+          "type": "user_id",
+          "value": "Jen"
+        }
+      ],
+      "error_code": null,
+      "problem_summary": "Customer on PORTNET is seeing duplicate information for container CMAU0000020, indicating a data duplication issue.",
+      "potential_cause_hint": "Data duplication or synchronization issue causing identical container records to appear.",
+      "raw_text": "RE: Email ALR-861600 | CMAU0000020 - Duplicate Container information received\nTo: Ops Team Duty; Jen\nCc: Customer Service\nHi Jen,\nPlease assist in checking container CMAU0000020. Customer on PORTNET is seeing 2\nidentical containers information.\nThanks.\nRegards,\nKenny"
+    },
+    "retrieved_sops": [
+      {
+        "content": "Title: CNTR: Duplicate Container information received\n\nOverview:\nReceived with conflicting duplicate entry for container information. Later message had older timestamp; last-writer-wins regressed status.",
+        "metadata": {
+          "sop_title": "CNTR: Duplicate Container information received",
+          "chunk_type": "overview",
+          "sop_index": 73,
+          "source": "knowledge_base_structured.json",
+          "module": "Container"
+        },
+        "score": 0.7015941739082336
+      },
+      {
+        "content": "Title: CNTR: Duplicate Container information received\n\nResolution Steps:\nVerify in DB \n\nSELECT * FROM container WHERE cntr_no = :CONTAINER_NO ORDER BY created_at DESC;\n\nKeep the latest record (highest created_at) and delete earlier records — with a preview and a safe, bounded delete.\n\nSELECT c.* FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;\n\nSafe delete (keep latest only)\n\nDELETE c FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;",
+        "metadata": {
+          "sop_title": "CNTR: Duplicate Container information received",
+          "chunk_type": "resolution",
+          "module": "Container",
+          "sop_index": 73,
+          "source": "knowledge_base_structured.json"
+        },
+        "score": 0.7393007874488831
+      },
+      {
+        "content": "Title: CNTR: Discrepancy between customer portal and TOS for container CONTAINER_ID on voyage V001\n\nOverview:\nDiscrepancy between customer portal and TOS for container CONTAINER_ID on voyage V001. Portal shows 'Loaded @ BP02' while TOS indicates 'In Yard - Block J4'. Audit trail reveals a late yard move event, potentially overwritten by an older milestone. Booking BK-CC5O7UUB and seal S2343-PVS included (randomized placeholders). Yard crane QC13 handled the last move at PSA Tanjong Pagar.",
+        "metadata": {
+          "sop_title": "CNTR: Discrepancy between customer portal and TOS for container CONTAINER_ID on voyage V001",
+          "source": "knowledge_base_structured.json",
+          "module": "Container",
+          "sop_index": 7,
+          "chunk_type": "overview"
+        },
+        "score": 0.7642366886138916
+      }
+    ],
+    "retrieval_summary": "Retrieved 3 relevant SOP(s) for incident ALR-861600. Top match: CNTR: Duplicate Container information received (similarity score: 0.70) Affected module: Container"
+  }
+]

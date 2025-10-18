@@ -1,0 +1,134 @@
+[
+  {
+    "example_number": 1,
+    "example_name": "Email - Duplicate Container",
+    "status": "success",
+    "parsed_data": {
+      "incident_id": "ALR-861600",
+      "source_type": "Email",
+      "received_timestamp_utc": "2025-10-18T10:31:30.738350Z",
+      "reported_timestamp_hint": null,
+      "urgency": "Medium",
+      "affected_module": "Container",
+      "entities": [
+        {
+          "type": "container_number",
+          "value": "CMAU0000020"
+        },
+        {
+          "type": "user_id",
+          "value": "Kenny"
+        },
+        {
+          "type": "user_id",
+          "value": "Jen"
+        }
+      ],
+      "error_code": null,
+      "problem_summary": "Customer on PORTNET is seeing duplicate information for container CMAU0000020, indicating a data duplication issue.",
+      "potential_cause_hint": "Data duplication or synchronization issue causing identical container records to appear.",
+      "raw_text": "RE: Email ALR-861600 | CMAU0000020 - Duplicate Container information received\nTo: Ops Team Duty; Jen\nCc: Customer Service\nHi Jen,\nPlease assist in checking container CMAU0000020. Customer on PORTNET is seeing 2\nidentical containers information.\nThanks.\nRegards,\nKenny"
+    }
+  },
+  {
+    "example_number": 2,
+    "example_name": "Email - Vessel Error",
+    "status": "success",
+    "parsed_data": {
+      "incident_id": "ALR-861631",
+      "source_type": "Email",
+      "received_timestamp_utc": "2025-10-18T10:31:33.642545Z",
+      "reported_timestamp_hint": null,
+      "urgency": "Medium",
+      "affected_module": "Vessel",
+      "entities": [
+        {
+          "type": "vessel_name",
+          "value": "MV Lion City 07"
+        },
+        {
+          "type": "error_code",
+          "value": "VESSEL_ERR_4"
+        },
+        {
+          "type": "user_id",
+          "value": "Vedu"
+        },
+        {
+          "type": "user_id",
+          "value": "Jia Xuan"
+        }
+      ],
+      "error_code": "VESSEL_ERR_4",
+      "problem_summary": "Customer was unable to create vessel advice for MV Lion City 07 due to error VESSEL_ERR_4 indicating the vessel name has been used by another vessel advice.",
+      "potential_cause_hint": "Duplicate vessel name usage causing data validation failure in vessel advice creation.",
+      "raw_text": "RE: Email ALR-861631 | VESSEL_ERR_4 - System Vessel Name has been used by other vessel advice\nTo: Ops Team Duty; Vedu\nCc: Customer Service\nHi Vedu,\nCustomer reported that they were unable to create vessel advice for MV Lion City 07 and\nhit error VESSEL_ERR_4. The local vessel name had been used by other vessel advice.\n\nPlease assist, thanks.\nRegards,\nJia Xuan"
+    }
+  },
+  {
+    "example_number": 3,
+    "example_name": "SMS - EDI Error",
+    "status": "success",
+    "parsed_data": {
+      "incident_id": "INC-154599",
+      "source_type": "SMS",
+      "received_timestamp_utc": "2025-10-18T10:31:36.571729Z",
+      "reported_timestamp_hint": null,
+      "urgency": "Medium",
+      "affected_module": "EDI/API",
+      "entities": [
+        {
+          "type": "error_code",
+          "value": "REF-IFT-0007"
+        },
+        {
+          "type": "system_name",
+          "value": "PSA-TOS"
+        },
+        {
+          "type": "system_name",
+          "value": "LINE-PSA"
+        }
+      ],
+      "error_code": "REF-IFT-0007",
+      "problem_summary": "EDI message REF-IFT-0007 sent from LINE-PSA to PSA-TOS is stuck in ERROR status due to no acknowledgment being sent.",
+      "potential_cause_hint": "Missing acknowledgment data causing the message to remain in error state; possible integration or synchronization issue between sender and recipient systems.",
+      "raw_text": "Alert: SMS INC-154599\nIssue: EDI message REF-IFT-0007 stuck in ERROR status (Sender: LINE-PSA,\nRecipient: PSA-TOS, State: No acknowledgment sent, ack_at is NULL)."
+    }
+  },
+  {
+    "example_number": 4,
+    "example_name": "Call - BAPLIE Inconsistency",
+    "status": "success",
+    "parsed_data": {
+      "incident_id": "TCK-742311",
+      "source_type": "Call",
+      "received_timestamp_utc": "2025-10-18T10:31:39.028583Z",
+      "reported_timestamp_hint": null,
+      "urgency": "High",
+      "affected_module": "EDI/API",
+      "entities": [
+        {
+          "type": "vessel_name",
+          "value": "MV PACIFIC DAWN/07E"
+        },
+        {
+          "type": "message_type",
+          "value": "COARRI"
+        },
+        {
+          "type": "message_type",
+          "value": "BAPLIE"
+        },
+        {
+          "type": "system_name",
+          "value": "Pasir Panjang Terminal 4"
+        }
+      ],
+      "error_code": null,
+      "problem_summary": "There is a BAPLIE inconsistency for vessel MV PACIFIC DAWN/07E at Pasir Panjang Terminal 4 where COARRI shows load completion for bay 14 but BAPLIE still lists units in those slots, caused by an older timestamp regressing the plan.",
+      "potential_cause_hint": "Timestamp mismatch causing regression of the vessel plan in BAPLIE data synchronization.",
+      "raw_text": "Alert: Call TCK-742311\n\nIssues: Vessel MV PACIFIC DAWN/07E exception at Pasir Panjang Terminal 4\nDetails: BAPLIE inconsistency for MV PACIFIC DAWN/07E: COARRI shows load completed for bay\n14, but BAPLIE still lists units in those slots. Older timestamp regressed the plan. All numeric\nidentifiers are randomized placeholders; no credentials stored. Please investigate and resolve\nurgently. Contact the relevant team if needed."
+    }
+  }
+]

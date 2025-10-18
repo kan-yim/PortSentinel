@@ -1,0 +1,21 @@
+# Core LangChain and OpenAI dependencies
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-core>=0.1.0
+
+# Data validation and parsing
+pydantic>=2.0.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0
+
+# Optional: For better async support
+aiohttp>=3.9.0
+
+# Optional: For structured logging
+structlog>=23.2.0

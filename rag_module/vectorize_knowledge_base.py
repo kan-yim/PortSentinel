@@ -103,24 +103,24 @@ class KnowledgeBaseVectorizer:
         print(f"\n正在创建文档块...")
 
         for idx, sop in enumerate(sops, 1):
-            title = sop.get("标题", "未命名 SOP")
-            overview = sop.get("overview", "")
-            resolution = sop.get("resolution", "")
-            verification = sop.get("verification", "")
-            preconditions = sop.get("preconditions")
-            module = sop.get("module", "Unknown")
+            title = sop.get("Title", "")
+            overview = sop.get("Overview", "")
+            resolution = sop.get("Resolution", "")
+            verification = sop.get("Verification", "")
+            preconditions = sop.get("Preconditions")
+            module = sop.get("Module", "Unknown")
 
             # 生成唯一的 SOP ID
             sop_id = f"sop_{idx}"
             
             # 保存完整的 SOP 数据到内存映射
             self.sop_data_map[sop_id] = {
-                "标题": title,
-                "overview": overview,
-                "preconditions": preconditions,
-                "resolution": resolution,
-                "verification": verification,
-                "module": module
+                "Title": title,
+                "Overview": overview,
+                "Preconditions": preconditions,
+                "Resolution": resolution,
+                "Verification": verification,
+                "Module": module
             }
             
             # 将完整 SOP 数据序列化为 JSON 字符串（存入 metadata）

@@ -1,0 +1,63 @@
+{
+  "original_report": {
+    "incident_id": "EDI-001",
+    "source_type": "SMS",
+    "received_timestamp_utc": "2025-10-18T12:00:00Z",
+    "reported_timestamp_hint": null,
+    "urgency": "High",
+    "affected_module": "EDI/API",
+    "entities": [
+      {
+        "type": "correlation_id",
+        "value": "EDI-MSG-789456"
+      }
+    ],
+    "error_code": null,
+    "problem_summary": "EDI message stuck in ERROR status, no acknowledgment received",
+    "potential_cause_hint": null,
+    "raw_text": "Alert: EDI message EDI-MSG-789456 stuck in ERROR..."
+  },
+  "expanded_queries": [
+    "EDI message stuck in ERROR status, no acknowledgment received | Module: EDI/API",
+    "edi message stuck error status, acknowledgment received module: edi/api",
+    "EDI message stuck in ERROR status, no acknowledgment received EDI/API"
+  ],
+  "retrieved_sops": [
+    {
+      "Title": "EDI: EDI Message Timeout or Delay in Acknowledgment",
+      "Overview": "Rough Flow of the process: Message Parsed → Acknowledgment Expected → No Acknowledgment → Message Stuck in ERROR Status → Check Logs → Inspect EDI Messages → Manually Trigger Acknowledgment → Message Status Updated to ACKED → Issue Resolved\nThe issue occurs when an EDI message (e.g., IFTMIN) is received and processed (status: PARSED) but is not properly acknowledged. This can be due to server delays, network issues, or other factors. As a result, the message remains in the ERROR status and doesn’t have the expected ack_at timestamp, preventing it from being processed further, which disrupts data flow and shipment tracking.\nFor example, if PSA receives an IFTMIN message from LINE-PSA but the acknowledgment isn't sent to the sender (PSA-TOS), the message stays in ERROR status with a NULL value for ack_at. The lack of acknowledgment means that the message isn’t processed or moved forward.",
+      "Preconditions": "Access to the EDI message table (edi_message) in the database schema is available.\nThe message has been received and processed (status: PARSED), but no acknowledgment has occurred yet.\nThe message is in the ERROR status and doesn’t have the correct ack_at timestamp. Specifically, it has the value NULL in ack_at.\nLog file: edi_message_processing.log",
+      "Resolution": "Confirm Error in Logs (Check the logs for any entries related to the specific message (e.g., REF-IFT-0007) to verify if the acknowledgment process was delayed or failed).\ngrep -i \"REF-IFT-N\" edi_message_processing.log\nInspect Existing Messages\nRun a query on the edi_message table to find any messages that either:\n- Have the ERROR status or\n- Have been received and processed (status: PARSED) but haven't been properly acknowledged (i.e., ack_at is NULL).\nFor example, if a message was received by LINE-PSA and sent to PSA-TOS, but ack_at is NULL, it indicates that the message was parsed but wasn't properly acknowledged, leading to the ERROR status.\nRun a query on the edi_message table to find any messages that have been acknowledged (status: ACKED) but have not been properly acknowledged (ack_at is at NULL) after 24 hours.\nSELECT edi_id, message_ref, sender, receiver, status, sent_at, ack_at, error_text\nFROM edi_message\nWHERE status = 'ERROR' OR (status = 'PARSED' AND ack_at IS NULL);\nDecision Logic\nIf NO active message (no message stuck in ERROR status with missing ack_at):\nThe timeout issue shouldn't occur. Recheck the acknowledgment logic or network connection to confirm if any messages were delayed.\nIf active message exists and no acknowledgment (message is stuck in ACKED status but no proper acknowledgment):\nYou can manually trigger acknowledgment for the message, ensuring it gets an appropriate ack_at timestamp\nIf acknowledgment failed (even though the message was attempted for acknowledgment):\nYou must process the message again or trigger acknowledgment manually as described below.\nResolve the Timeout\nManually trigger the acknowledgment process for messages stuck in the ERROR status but not properly acknowledged. Update the status and set the ack_at timestamp.\n-- Trigger ACKED status update manually\nUPDATE edi_message\nSET status = 'ACKED', ack_at = NOW(), error_text = NULL\nWHERE edi_id = <edi_id>; -- Replace with the actual edi_id (1, 2, 3, 4, n)",
+      "Verification": null,
+      "Module": "EDI/API"
+    },
+    {
+      "Title": "API: Unexpected qualifier 'QUALIFIER' in EQD segment from PARTNER_ID; schema validation failed; containers in the message not reflected on the portal timeline.",
+      "Overview": "Unexpected qualifier 'QUALIFIER' in EQD segment from PARTNER_ID; schema validation failed; containers in the message not reflected on the portal timeline.",
+      "Preconditions": null,
+      "Resolution": "1. Implemented pre-ingest normalizer for qualifiers; updated partner IG notes; enabled anomaly detection for repeated segment errors exceeds threshold.\n1.1 Run schema validator (segments/qualifiers/max-occurrence).\n1.2 Fix qualifier mapping or split oversized occurrences.\n2. Communications used masked ticket references where applicable.\n3. Locate the problematic EDI message/file and quarantine it.\n4. Validate structure and partner-specific rules.\n4.1 Run schema validator (segments/qualifiers/max-occurrence).\n4.2 Fix qualifier mapping or split oversized occurrences.\n5. Correct normalization/mapping and reprocess safely.\n5.1 Use idempotency token to prevent duplicates.\n5.2 Re-ingest from quarantine and monitor translator logs.",
+      "Verification": "1. Confirm next run processed successfully; no duplicates.\n2. Verify partner ACK/CONTRL is archived.\n3. Attach validator logs and sanitized sample.",
+      "Module": "EDI/API"
+    },
+    {
+      "Title": "CNTR: Duplicate Container information received",
+      "Overview": "Received with conflicting duplicate entry for container information. Later message had older timestamp; last-writer-wins regressed status.",
+      "Preconditions": null,
+      "Resolution": "Verify in DB\nSELECT * FROM container WHERE cntr_no = :CONTAINER_NO ORDER BY created_at DESC;\nKeep the latest record (highest created_at) and delete earlier records — with a preview and a safe, bounded delete.\nSELECT c.* FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;\nSafe delete (keep latest only)\nDELETE c FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;",
+      "Verification": null,
+      "Module": "Container"
+    }
+  ],
+  "retrieval_summary": "Retrieved 3 SOP(s) for incident EDI-001 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 3 query variants. Processed 10 candidates after RRF. Top match: EDI: EDI Message Timeout or Delay in Acknowledgment Affected module: EDI/API",
+  "retrieval_metrics": {
+    "num_expanded_queries": 3,
+    "num_bm25_candidates": 27,
+    "num_vector_candidates": 8,
+    "num_merged_candidates": 12,
+    "num_after_rrf": 10,
+    "num_final_results": 3,
+    "bm25_weight": 0.4,
+    "vector_weight": 0.6,
+    "rrf_k": 60
+  }
+}

@@ -1,0 +1,195 @@
+[
+  {
+    "original_report": {
+      "incident_id": "ALR-861631",
+      "source_type": "Email",
+      "received_timestamp_utc": "2025-10-18T10:00:00Z",
+      "reported_timestamp_hint": null,
+      "urgency": "High",
+      "affected_module": "Vessel",
+      "entities": [
+        {
+          "type": "vessel_name",
+          "value": "LIONCITY07"
+        },
+        {
+          "type": "error_code",
+          "value": "VESSEL_ERR_4"
+        }
+      ],
+      "error_code": "VESSEL_ERR_4",
+      "problem_summary": "Unable to create vessel advice due to duplicate system vessel name",
+      "potential_cause_hint": null,
+      "raw_text": "Subject: Unable to create vessel advice\n\nError VESSEL_ERR_4..."
+    },
+    "expanded_queries": [
+      "Error code: VESSEL_ERR_4 | Unable to create vessel advice due to duplicate system vessel name | Module: Vessel",
+      "error code: vessel_err_4 unable create vessel advice due duplicate system vessel name module: vessel",
+      "VESSEL_ERR_4 Unable to create vessel advice due to duplicate system vessel name Vessel"
+    ],
+    "retrieved_sops": [
+      {
+        "Title": "VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice",
+        "Overview": "Resolve duplicate key error on creating vessel advice VESSEL_ERR_4 (only one active advice per system_vessel_name).",
+        "Preconditions": "You have access to DB schema with tables vessel_advice and berthing_application\nLog file: vessel_advice_service.log",
+        "Resolution": "Confirm Error in Logs\ngrep -i \"VESSEL_ERR_4\" vessel_advice_service.log\nInspect Existing Advice Rows\nSELECT vessel_advice_no, system_vessel_name, effective_start_datetime, effective_end_datetime, system_vessel_name_active FROM vessel_advice WHERE system_vessel_name = :system_vessel_name ORDER BY effective_start_datetime;\nidentify active advice: row with effective_end_datetime IS NULL.\nRecord down\n:active_vessel_advice_no (if any)\nCheck Port Programs Referencing Active Advice (Active only)\nSELECT application_no, vessel_advice_no, vessel_close_datetime, deleted, berthing_status FROM berth_application WHERE vessel_advice_no = :active_vessel_advice_no AND vessel_close_datetime IS NULL AND berthing_status = 'A' AND deleted = 'N';\nIf result set not empty → active port programs exist.\nDecision Logic\nIf NO active advice (no row with effective_end_datetime IS NULL): the duplicate error shouldn’t occur—recheck.\nActive advice exists & NO active port programs: proceed to expire advice.\nActive advice exists & active port programs present: close/archive them first, then expire advice.\nClose Active Port Programs\nDefine closure timestamp (prefer consistent UTC: e.g. '2025-10-06 00:00:00').\nStatus code definitions (confirm internally):\nberthing_status: 'A' = Active, 'C' = Closed\nDeleted: 'N' = Normal, 'A' = Archived/Removed\nUPDATE berth_application SET vessel_close_datetime = :CLOSE_TS, berthing_status = 'C', deleted = 'A' WHERE vessel_advice_no = :vessel_advice_no AND vessel_close_datetime IS NULL AND berthing_status = 'A' AND deleted = 'N';\nExpire the Active Advice\nUPDATE vessel_advice SET effective_end_datetime = :CLOSE_TS WHERE vessel_advice_no = :vessel_advice_no AND effective_end_datetime IS NULL;",
+        "Verification": null,
+        "Module": "Vessel"
+      },
+      {
+        "Title": "CNTR: Trying to create Container Range From CONTAINER_ID to BSIU 323099, but we are hit with Container Range Error",
+        "Overview": "We are attempting to create a container range from CONTAINER_ID to CONTAINER_ID, but encountered an error: 'Overlapping container range(s) found.' However, the specified range could not be located. A query for the range from CONTAINER_ID to CONTAINER_ID returned a different range. The concern is that the range isn't visible in the system, despite being created by the relevant process. A search on our end also returned a different range. Why is this discrepancy not visible on their end?",
+        "Preconditions": null,
+        "Resolution": "1. How to check container parameter range and whether it overlap?\n2. System check the serial number range excluding Check Digit\n3. For this case, the serial number overlap. BSIU 3430001\n4. Confirm scope and reproduction on a safe test entity.\n5. Check recent deployments/config toggles around the timestamp.\n6. Apply compliant fix and document the change.\n6.1 Capture before/after evidence (screenshots/queries).\n6.2 Update the case with sanitized details.",
+        "Verification": "1. Run the end-to-end journey again; confirm success.\n2. No new errors for 30 minutes in monitoring.\n3. Attach evidence and close the case.",
+        "Module": "Container Report"
+      },
+      {
+        "Title": "VSL: HI Team, Similar with previous case: TICKET_NUMBER where we have duplicate Abbreviated Vessel Name.",
+        "Overview": "Case: TICKET_NUMBER where we have duplicate Abbreviated Vessel Name.\nPlease assist to change Abbreviated Vessel Name for new VESSEL_NUMBER with callsign CALLSIGN_ID to be VESSEL_NAME_SHORT i/o VESSEL_NAME_LONG to avoid same name with callsign CALLSIGN_ID2 as showing error on below screenshot while creating new Vessel Advice.",
+        "Preconditions": null,
+        "Resolution": "1. SQLB patch and Please ask user to retry\n2. Confirm scope and reproduction on a safe test entity.\n3. Check recent deployments/config toggles around the timestamp.\n4. Apply compliant fix and document the change.\n4.1 Capture before/after evidence (screenshots/queries).\n4.2 Update the case with sanitized details.\n5. Validate end-to-end user flow.\n5.1 Capture before/after evidence (screenshots/queries).\n5.2 Update the case with sanitized details.",
+        "Verification": "1. Run the end-to-end journey again; confirm success.\n2. No new errors for 30 minutes in monitoring.\n3. Attach evidence and close the case.",
+        "Module": "Vessel"
+      }
+    ],
+    "retrieval_summary": "Retrieved 3 SOP(s) for incident ALR-861631 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 3 query variants. Processed 10 candidates after RRF. Top match: VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice Affected module: Vessel Error code: VESSEL_ERR_4",
+    "retrieval_metrics": {
+      "num_expanded_queries": 3,
+      "num_bm25_candidates": 26,
+      "num_vector_candidates": 13,
+      "num_merged_candidates": 14,
+      "num_after_rrf": 10,
+      "num_final_results": 3,
+      "bm25_weight": 0.4,
+      "vector_weight": 0.6,
+      "rrf_k": 60
+    }
+  },
+  {
+    "original_report": {
+      "incident_id": "CONT-001",
+      "source_type": "Email",
+      "received_timestamp_utc": "2025-10-18T11:00:00Z",
+      "reported_timestamp_hint": null,
+      "urgency": "Medium",
+      "affected_module": "Container",
+      "entities": [
+        {
+          "type": "container_number",
+          "value": "BSIU323099"
+        }
+      ],
+      "error_code": null,
+      "problem_summary": "Trying to create Container Range but hit with overlapping error",
+      "potential_cause_hint": null,
+      "raw_text": "Error: Overlapping container range(s) found..."
+    },
+    "expanded_queries": [
+      "Trying to create Container Range but hit with overlapping error | Module: Container",
+      "trying create container range hit overlapping error module: container",
+      "Trying to create Container Range but hit with overlapping error Container"
+    ],
+    "retrieved_sops": [
+      {
+        "Title": "CNTR: Trying to create Container Range From CONTAINER_ID to BSIU 323099, but we are hit with Container Range Error",
+        "Overview": "We are attempting to create a container range from CONTAINER_ID to CONTAINER_ID, but encountered an error: 'Overlapping container range(s) found.' However, the specified range could not be located. A query for the range from CONTAINER_ID to CONTAINER_ID returned a different range. The concern is that the range isn't visible in the system, despite being created by the relevant process. A search on our end also returned a different range. Why is this discrepancy not visible on their end?",
+        "Preconditions": null,
+        "Resolution": "1. How to check container parameter range and whether it overlap?\n2. System check the serial number range excluding Check Digit\n3. For this case, the serial number overlap. BSIU 3430001\n4. Confirm scope and reproduction on a safe test entity.\n5. Check recent deployments/config toggles around the timestamp.\n6. Apply compliant fix and document the change.\n6.1 Capture before/after evidence (screenshots/queries).\n6.2 Update the case with sanitized details.",
+        "Verification": "1. Run the end-to-end journey again; confirm success.\n2. No new errors for 30 minutes in monitoring.\n3. Attach evidence and close the case.",
+        "Module": "Container Report"
+      },
+      {
+        "Title": "CNTR: Duplicate Container information received",
+        "Overview": "Received with conflicting duplicate entry for container information. Later message had older timestamp; last-writer-wins regressed status.",
+        "Preconditions": null,
+        "Resolution": "Verify in DB\nSELECT * FROM container WHERE cntr_no = :CONTAINER_NO ORDER BY created_at DESC;\nKeep the latest record (highest created_at) and delete earlier records — with a preview and a safe, bounded delete.\nSELECT c.* FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;\nSafe delete (keep latest only)\nDELETE c FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;",
+        "Verification": null,
+        "Module": "Container"
+      },
+      {
+        "Title": "EDI: Intermittent 408 on '/auth/token' during webhook deliveries to PARTNER_ID",
+        "Overview": "Intermittent 408 on '/auth/token' during webhook deliveries to PARTNER_ID. slowest 5% of requests latency > 12s triggered breaker; retries hit max; delivery backlog observed. Downstream customer timeline showed gaps; LOCATION ops unaffected but visibility degraded.",
+        "Preconditions": null,
+        "Resolution": "1. Scaled read replicas and split hot key namespaces; added half-open probes to breaker; restored normal delivery and rebuilt backlog safely.\n2. Communications used masked ticket references where applicable.\n3. Reproduce the failing call on a safe test entity.\n3.1 Use read-only token; capture status code and latency.\n3.2 Record request ID/correlation ID for log search.\n4. Check API gateway/service health around the incident window.\n5. Review auth and permissions for the calling user/client.\n5.1 Refresh/rotate token; confirm scopes.\n5.2 Verify NTP/clock skew; resync if >2 seconds.",
+        "Verification": "1. Re-run the endpoint; expect 2xx and correct JSON fields.\n2. Observe error rate and latency for 30 minutes; under baseline.\n3. Attach request/response evidence to the case.",
+        "Module": "EDI/API"
+      }
+    ],
+    "retrieval_summary": "Retrieved 3 SOP(s) for incident CONT-001 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 3 query variants. Processed 10 candidates after RRF. Top match: CNTR: Trying to create Container Range From CONTAINER_ID to BSIU 323099, but we are hit with Container Range Error Affected module: Container",
+    "retrieval_metrics": {
+      "num_expanded_queries": 3,
+      "num_bm25_candidates": 25,
+      "num_vector_candidates": 20,
+      "num_merged_candidates": 18,
+      "num_after_rrf": 10,
+      "num_final_results": 3,
+      "bm25_weight": 0.4,
+      "vector_weight": 0.6,
+      "rrf_k": 60
+    }
+  },
+  {
+    "original_report": {
+      "incident_id": "EDI-001",
+      "source_type": "SMS",
+      "received_timestamp_utc": "2025-10-18T12:00:00Z",
+      "reported_timestamp_hint": null,
+      "urgency": "High",
+      "affected_module": "EDI/API",
+      "entities": [
+        {
+          "type": "correlation_id",
+          "value": "EDI-MSG-789456"
+        }
+      ],
+      "error_code": null,
+      "problem_summary": "EDI message stuck in ERROR status, no acknowledgment received",
+      "potential_cause_hint": null,
+      "raw_text": "Alert: EDI message EDI-MSG-789456 stuck in ERROR..."
+    },
+    "expanded_queries": [
+      "EDI message stuck in ERROR status, no acknowledgment received | Module: EDI/API",
+      "edi message stuck error status, acknowledgment received module: edi/api",
+      "EDI message stuck in ERROR status, no acknowledgment received EDI/API"
+    ],
+    "retrieved_sops": [
+      {
+        "Title": "EDI: EDI Message Timeout or Delay in Acknowledgment",
+        "Overview": "Rough Flow of the process: Message Parsed → Acknowledgment Expected → No Acknowledgment → Message Stuck in ERROR Status → Check Logs → Inspect EDI Messages → Manually Trigger Acknowledgment → Message Status Updated to ACKED → Issue Resolved\nThe issue occurs when an EDI message (e.g., IFTMIN) is received and processed (status: PARSED) but is not properly acknowledged. This can be due to server delays, network issues, or other factors. As a result, the message remains in the ERROR status and doesn’t have the expected ack_at timestamp, preventing it from being processed further, which disrupts data flow and shipment tracking.\nFor example, if PSA receives an IFTMIN message from LINE-PSA but the acknowledgment isn't sent to the sender (PSA-TOS), the message stays in ERROR status with a NULL value for ack_at. The lack of acknowledgment means that the message isn’t processed or moved forward.",
+        "Preconditions": "Access to the EDI message table (edi_message) in the database schema is available.\nThe message has been received and processed (status: PARSED), but no acknowledgment has occurred yet.\nThe message is in the ERROR status and doesn’t have the correct ack_at timestamp. Specifically, it has the value NULL in ack_at.\nLog file: edi_message_processing.log",
+        "Resolution": "Confirm Error in Logs (Check the logs for any entries related to the specific message (e.g., REF-IFT-0007) to verify if the acknowledgment process was delayed or failed).\ngrep -i \"REF-IFT-N\" edi_message_processing.log\nInspect Existing Messages\nRun a query on the edi_message table to find any messages that either:\n- Have the ERROR status or\n- Have been received and processed (status: PARSED) but haven't been properly acknowledged (i.e., ack_at is NULL).\nFor example, if a message was received by LINE-PSA and sent to PSA-TOS, but ack_at is NULL, it indicates that the message was parsed but wasn't properly acknowledged, leading to the ERROR status.\nRun a query on the edi_message table to find any messages that have been acknowledged (status: ACKED) but have not been properly acknowledged (ack_at is at NULL) after 24 hours.\nSELECT edi_id, message_ref, sender, receiver, status, sent_at, ack_at, error_text\nFROM edi_message\nWHERE status = 'ERROR' OR (status = 'PARSED' AND ack_at IS NULL);\nDecision Logic\nIf NO active message (no message stuck in ERROR status with missing ack_at):\nThe timeout issue shouldn't occur. Recheck the acknowledgment logic or network connection to confirm if any messages were delayed.\nIf active message exists and no acknowledgment (message is stuck in ACKED status but no proper acknowledgment):\nYou can manually trigger acknowledgment for the message, ensuring it gets an appropriate ack_at timestamp\nIf acknowledgment failed (even though the message was attempted for acknowledgment):\nYou must process the message again or trigger acknowledgment manually as described below.\nResolve the Timeout\nManually trigger the acknowledgment process for messages stuck in the ERROR status but not properly acknowledged. Update the status and set the ack_at timestamp.\n-- Trigger ACKED status update manually\nUPDATE edi_message\nSET status = 'ACKED', ack_at = NOW(), error_text = NULL\nWHERE edi_id = <edi_id>; -- Replace with the actual edi_id (1, 2, 3, 4, n)",
+        "Verification": null,
+        "Module": "EDI/API"
+      },
+      {
+        "Title": "API: Unexpected qualifier 'QUALIFIER' in EQD segment from PARTNER_ID; schema validation failed; containers in the message not reflected on the portal timeline.",
+        "Overview": "Unexpected qualifier 'QUALIFIER' in EQD segment from PARTNER_ID; schema validation failed; containers in the message not reflected on the portal timeline.",
+        "Preconditions": null,
+        "Resolution": "1. Implemented pre-ingest normalizer for qualifiers; updated partner IG notes; enabled anomaly detection for repeated segment errors exceeds threshold.\n1.1 Run schema validator (segments/qualifiers/max-occurrence).\n1.2 Fix qualifier mapping or split oversized occurrences.\n2. Communications used masked ticket references where applicable.\n3. Locate the problematic EDI message/file and quarantine it.\n4. Validate structure and partner-specific rules.\n4.1 Run schema validator (segments/qualifiers/max-occurrence).\n4.2 Fix qualifier mapping or split oversized occurrences.\n5. Correct normalization/mapping and reprocess safely.\n5.1 Use idempotency token to prevent duplicates.\n5.2 Re-ingest from quarantine and monitor translator logs.",
+        "Verification": "1. Confirm next run processed successfully; no duplicates.\n2. Verify partner ACK/CONTRL is archived.\n3. Attach validator logs and sanitized sample.",
+        "Module": "EDI/API"
+      },
+      {
+        "Title": "CNTR: Duplicate Container information received",
+        "Overview": "Received with conflicting duplicate entry for container information. Later message had older timestamp; last-writer-wins regressed status.",
+        "Preconditions": null,
+        "Resolution": "Verify in DB\nSELECT * FROM container WHERE cntr_no = :CONTAINER_NO ORDER BY created_at DESC;\nKeep the latest record (highest created_at) and delete earlier records — with a preview and a safe, bounded delete.\nSELECT c.* FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;\nSafe delete (keep latest only)\nDELETE c FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;",
+        "Verification": null,
+        "Module": "Container"
+      }
+    ],
+    "retrieval_summary": "Retrieved 3 SOP(s) for incident EDI-001 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 3 query variants. Processed 10 candidates after RRF. Top match: EDI: EDI Message Timeout or Delay in Acknowledgment Affected module: EDI/API",
+    "retrieval_metrics": {
+      "num_expanded_queries": 3,
+      "num_bm25_candidates": 27,
+      "num_vector_candidates": 8,
+      "num_merged_candidates": 12,
+      "num_after_rrf": 10,
+      "num_final_results": 3,
+      "bm25_weight": 0.4,
+      "vector_weight": 0.6,
+      "rrf_k": 60
+    }
+  }
+]

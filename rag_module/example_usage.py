@@ -1,5 +1,5 @@
 """
-RAG Agent 使用示例
+RAG Agent 使用示例 - 修复版本
 """
 
 import json
@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "parsing_module" / "src"))
 
 from data_sources.vector_store_interface import VectorStoreInterface
-from rag_agent.validator import RagAgent
+from rag_agent.validator import HybridRagAgent
 from parsing_agent.models import IncidentReport, Entity
 
 
@@ -23,9 +23,12 @@ def example_1_basic_usage():
 
     # 初始化 RAG Agent
     vector_store = VectorStoreInterface(persist_directory="db_chroma_kb")
-    rag_agent = RagAgent(vector_store_interface=vector_store)
+    rag_agent = HybridRagAgent(
+        vector_store_interface=vector_store,
+        use_llm=False
+    )
 
-    # 创建测试报告 - VESSEL_ERR_4 场景
+    # 创建测试报告
     report = IncidentReport(
         incident_id="ALR-861631",
         source_type="Email",
@@ -42,57 +45,106 @@ def example_1_basic_usage():
         ],
         steps_already_taken=["Checked vessel advice table"],
         additional_notes="Customer needs urgent resolution",
-        raw_text="Subject: Unable to create vessel advice\n\nHi support,\n\nI'm getting error VESSEL_ERR_4 when trying to create vessel advice for LIONCITY07. The error says 'System Vessel Name has been used by other vessel advice'. Customer needs urgent resolution.\n\nRegards,\nJohn Doe"
+        raw_text="Subject: Unable to create vessel advice\n\nError VESSEL_ERR_4..."
     )
 
     # 检索相关 SOPs
-    enriched = rag_agent.retrieve(report, k=3)
+    enriched = rag_agent.retrieve(report, final_top_k=3)
 
-    # 显示结果
+    # ✅ 安全处理可能为 None 的字段
     print(f"\n检索到 {len(enriched.retrieved_sops)} 个相关 SOP:")
     for i, sop in enumerate(enriched.retrieved_sops, 1):
-        print(f"\n{i}. {sop.metadata.get('sop_title', '未知')}")
-        print(f"   模块: {sop.metadata.get('module', '未知')}")
-        print(f"   相似度分数: {sop.score:.2f}")
-        print(f"   内容预览: {sop.content[:150]}...")
+        print(f"\n{'=' * 80}")
+        print(f"SOP #{i}")
+        print(f"{'=' * 80}")
+        print(f"标题: {sop.get('Title', '未知')}")
+        print(f"模块: {sop.get('Module', '未知')}")
+        
+        # 安全获取字段，处理 None 值
+        overview = sop.get('Overview') or '无'
+        resolution = sop.get('Resolution') or '无'
+        verification = sop.get('Verification') or '无'
+        preconditions = sop.get('Preconditions') or '无'
+        
+        print(f"\n概述:")
+        print(f"{overview[:300]}...")
+        
+        print(f"\n前置条件:")
+        print(f"{preconditions[:200]}...")
+        
+        print(f"\n解决方案:")
+        print(f"{resolution[:300]}...")
+        
+        print(f"\n验证步骤:")
+        print(f"{verification[:200]}...")
 
-    print(f"\n摘要:\n{enriched.retrieval_summary}")
+    print(f"\n{'=' * 80}")
+    print(f"检索摘要")
+    print(f"{'=' * 80}")
+    print(enriched.retrieval_summary)
+    
+    # 显示查询变体
+    print(f"\n{'=' * 80}")
+    print(f"生成的查询变体")
+    print(f"{'=' * 80}")
+    for i, query in enumerate(enriched.expanded_queries, 1):
+        print(f"{i}. {query}")
+    
+    # 显示检索指标
+    if enriched.retrieval_metrics:
+        print(f"\n{'=' * 80}")
+        print(f"检索指标")
+        print(f"{'=' * 80}")
+        metrics = enriched.retrieval_metrics
+        print(f"查询变体数量: {metrics.num_expanded_queries}")
+        print(f"BM25 候选数量: {metrics.num_bm25_candidates}")
+        print(f"向量候选数量: {metrics.num_vector_candidates}")
+        print(f"合并后候选数: {metrics.num_merged_candidates}")
+        print(f"RRF 后保留数: {metrics.num_after_rrf}")
+        print(f"最终结果数量: {metrics.num_final_results}")
+        print(f"BM25 权重: {metrics.bm25_weight}")
+        print(f"向量权重: {metrics.vector_weight}")
+        print(f"RRF 参数 k: {metrics.rrf_k}")
 
     return enriched
 
 
 def example_2_container_issue():
-    """示例 2: 容器重复问题"""
+    """示例 2: 容器范围错误"""
     print("\n" + "=" * 80)
-    print("示例 2: 容器重复问题")
+    print("示例 2: 容器范围错误")
     print("=" * 80)
 
     vector_store = VectorStoreInterface(persist_directory="db_chroma_kb")
-    rag_agent = RagAgent(vector_store_interface=vector_store)
+    rag_agent = HybridRagAgent(
+        vector_store_interface=vector_store,
+        use_llm=False
+    )
 
     report = IncidentReport(
-        incident_id="CONT-12345",
+        incident_id="CONT-001",
         source_type="Email",
         received_timestamp_utc="2025-10-18T11:00:00Z",
         urgency="Medium",
         reported_by="Jane Smith",
         reported_at="2025-10-18T11:00:00",
-        problem_summary="Customer seeing duplicate container CMAU0000020 in the system",
+        problem_summary="Trying to create Container Range but hit with overlapping error",
         affected_module="Container",
         error_code=None,
         entities=[
-            Entity(type="container_number", value="CMAU0000020")
+            Entity(type="container_number", value="BSIU323099")
         ],
-        steps_already_taken=["Checked container table"],
+        steps_already_taken=[],
         additional_notes="",
-        raw_text="Subject: Duplicate container issue\n\nCustomer reports seeing container CMAU0000020 appearing twice in the system. Please investigate."
+        raw_text="Error: Overlapping container range(s) found..."
     )
 
-    enriched = rag_agent.retrieve(report, k=3)
+    enriched = rag_agent.retrieve(report, final_top_k=3)
 
     print(f"\n检索到 {len(enriched.retrieved_sops)} 个相关 SOP:")
     for i, sop in enumerate(enriched.retrieved_sops, 1):
-        print(f"\n{i}. {sop.metadata.get('sop_title', '未知')} (分数: {sop.score:.2f})")
+        print(f"\n{i}. {sop.get('Title', '未知')[:70]}...")
+        print(f"   模块: {sop.get('Module', '未知')}")
 
     print(f"\n摘要:\n{enriched.retrieval_summary}")
 
@@ -100,13 +152,16 @@ def example_2_container_issue():
 
 
 def example_3_export_to_json():
-    """示例 3: 导出为 JSON"""
+    """示例 3: 导出完整 JSON"""
     print("\n" + "=" * 80)
-    print("示例 3: 导出检索结果为 JSON")
+    print("示例 3: 导出为完整 JSON 格式")
     print("=" * 80)
 
     vector_store = VectorStoreInterface(persist_directory="db_chroma_kb")
-    rag_agent = RagAgent(vector_store_interface=vector_store)
+    rag_agent = HybridRagAgent(
+        vector_store_interface=vector_store,
+        use_llm=False
+    )
 
     report = IncidentReport(
         incident_id="EDI-001",
@@ -123,109 +178,125 @@ def example_3_export_to_json():
         ],
         steps_already_taken=[],
         additional_notes="",
-        raw_text="Alert: EDI message EDI-MSG-789456 stuck in ERROR status for 2 hours. No acknowledgment received from partner system."
+        raw_text="Alert: EDI message EDI-MSG-789456 stuck in ERROR..."
     )
 
-    enriched = rag_agent.retrieve(report, k=2)
+    enriched = rag_agent.retrieve(report, final_top_k=3)
 
     # 导出为 JSON
-    output_file = "example_enriched_output.json"
+    output_file = "hybrid_rag_output.json"
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(enriched.model_dump(), f, indent=2, ensure_ascii=False)
 
-    print(f"\n✓ 检索结果已保存到: {output_file}")
-    print(f"  - 原始报告: {enriched.original_report.incident_id}")
+    print(f"\n✓ 结果已保存到: {output_file}")
+    print(f"  - 事故 ID: {enriched.original_report.incident_id}")
     print(f"  - 检索到的 SOP 数量: {len(enriched.retrieved_sops)}")
-    print(f"  - 文件大小: {Path(output_file).stat().st_size} bytes")
+    
+    # 显示第一个 SOP 的完整 JSON
+    if enriched.retrieved_sops:
+        print(f"\n第一个 SOP 的完整 JSON 结构:")
+        print(json.dumps(enriched.retrieved_sops[0], indent=2, ensure_ascii=False))
 
     return enriched
 
 
-def example_4_load_from_parsing_module():
-    """示例 4: 从 parsing_module 输出加载报告"""
+def example_4_compare_methods():
+    """示例 4: 对比不同权重配置"""
     print("\n" + "=" * 80)
-    print("示例 4: 从 Agent 1 输出加载报告")
+    print("示例 4: 对比不同权重配置的检索效果")
     print("=" * 80)
 
-    parsed_incidents_path = Path(__file__).parent.parent / "parsing_module" / "parsed_incidents.json"
-
-    if not parsed_incidents_path.exists():
-        print(f"❌ 未找到 Agent 1 输出文件: {parsed_incidents_path}")
-        print("   请先运行 parsing_module 解析事故报告")
-        return None
-
-    # 加载 Agent 1 输出
-    with open(parsed_incidents_path, "r", encoding="utf-8") as f:
-        parsed_data = json.load(f)
-
-    print(f"✓ 加载了 {len(parsed_data)} 个已解析的报告")
-
-    # 初始化 RAG Agent
     vector_store = VectorStoreInterface(persist_directory="db_chroma_kb")
-    rag_agent = RagAgent(vector_store_interface=vector_store)
+    
+    report = IncidentReport(
+        incident_id="TEST-001",
+        source_type="Email",
+        received_timestamp_utc="2025-10-18T13:00:00Z",
+        urgency="Medium",
+        reported_by="Test User",
+        reported_at="2025-10-18T13:00:00",
+        problem_summary="Duplicate container CMAU0000020 in system",
+        affected_module="Container",
+        error_code=None,
+        entities=[
+            Entity(type="container_number", value="CMAU0000020")
+        ],
+        steps_already_taken=[],
+        additional_notes="",
+        raw_text="Customer seeing duplicate container..."
+    )
 
-    # 处理第一个报告
-    if parsed_data:
-        report_dict = parsed_data[0]["parsed_data"]
-        report = IncidentReport(**report_dict)
+    # 配置 1: 偏重 BM25
+    print("\n[配置 1] BM25 权重: 0.7, 向量权重: 0.3")
+    agent1 = HybridRagAgent(
+        vector_store_interface=vector_store,
+        bm25_weight=0.7,
+        vector_weight=0.3,
+        use_llm=False
+    )
+    enriched1 = agent1.retrieve(report, final_top_k=3)
+    print(f"Top 1: {enriched1.retrieved_sops[0].get('Title', 'N/A')[:60]}...")
 
-        print(f"\n处理报告: {report.incident_id}")
-        print(f"问题摘要: {report.problem_summary}")
+    # 配置 2: 偏重向量
+    print("\n[配置 2] BM25 权重: 0.3, 向量权重: 0.7")
+    agent2 = HybridRagAgent(
+        vector_store_interface=vector_store,
+        bm25_weight=0.3,
+        vector_weight=0.7,
+        use_llm=False
+    )
+    enriched2 = agent2.retrieve(report, final_top_k=3)
+    print(f"Top 1: {enriched2.retrieved_sops[0].get('Title', 'N/A')[:60]}...")
 
-        enriched = rag_agent.retrieve(report, k=3)
-
-        print(f"\n检索到 {len(enriched.retrieved_sops)} 个相关 SOP")
-        print(f"摘要: {enriched.retrieval_summary}")
-
-        return enriched
+    # 配置 3: 平衡
+    print("\n[配置 3] BM25 权重: 0.5, 向量权重: 0.5")
+    agent3 = HybridRagAgent(
+        vector_store_interface=vector_store,
+        bm25_weight=0.5,
+        vector_weight=0.5,
+        use_llm=False
+    )
+    enriched3 = agent3.retrieve(report, final_top_k=3)
+    print(f"Top 1: {enriched3.retrieved_sops[0].get('Title', 'N/A')[:60]}...")
 
 
 def main():
     """运行所有示例"""
     print("\n")
     print("╔" + "=" * 78 + "╗")
-    print("║" + " " * 28 + "RAG Agent 使用示例" + " " * 32 + "║")
+    print("║" + " " * 25 + "混合检索 RAG Agent 示例" + " " * 27 + "║")
     print("╚" + "=" * 78 + "╝")
 
     try:
-        # 运行示例并收集所有结果
-        results = []
-
+        # 示例 1: 基本使用
         enriched_1 = example_1_basic_usage()
-        if enriched_1:
-            results.append(enriched_1)
 
+        # 示例 2: 容器问题
         enriched_2 = example_2_container_issue()
-        if enriched_2:
-            results.append(enriched_2)
 
+        # 示例 3: 导出 JSON
         enriched_3 = example_3_export_to_json()
-        if enriched_3:
-            results.append(enriched_3)
 
-        enriched_4 = example_4_load_from_parsing_module()
-        if enriched_4:
-            results.append(enriched_4)
+        # 示例 4: 对比配置
+        example_4_compare_methods()
 
-        # 导出所有结果到一个 JSON 文件
-        if results:
-            print("\n" + "=" * 80)
-            print("导出所有结果")
-            print("=" * 80)
-
-            all_results_file = "all_enriched_results.json"
-            all_results_data = [r.model_dump() for r in results]
-
-            with open(all_results_file, "w", encoding="utf-8") as f:
-                json.dump(all_results_data, f, indent=2, ensure_ascii=False)
-
-            print(f"\n✓ 所有结果已保存到: {all_results_file}")
-            print(f"  - 总共处理了 {len(results)} 个事故报告")
-            print(f"  - 文件大小: {Path(all_results_file).stat().st_size} bytes")
+        # 导出所有结果
+        all_results = [enriched_1, enriched_2, enriched_3]
+        
+        with open("all_hybrid_results.json", "w", encoding="utf-8") as f:
+            json.dump(
+                [r.model_dump() for r in all_results],
+                f,
+                indent=2,
+                ensure_ascii=False
+            )
 
         print("\n" + "=" * 80)
-        print("所有示例运行完成！")
+        print("✓ 所有示例运行完成！")
         print("=" * 80)
+        print(f"\n输出文件:")
+        print(f"  - hybrid_rag_output.json (单个示例)")
+        print(f"  - all_hybrid_results.json (所有结果)")
         print()
 
     except Exception as e:

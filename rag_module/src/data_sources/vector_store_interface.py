@@ -154,28 +154,36 @@ class VectorStoreInterface:
         k: int = 3
     ) -> List[tuple[Document, float]]:
         """
-        Perform similarity search and return documents with similarity scores.
-
-        Args:
-            query: Search query text
-            k: Number of top results to return
-
+        执行相似度搜索并返回文档和相似度分数
+        
+        注意：Chroma 返回的是距离，这里转换为相似度
+        
         Returns:
-            List of (Document, score) tuples, where higher score = more similar
-
-        Raises:
-            ValueError: If query is empty
-            Exception: If search fails
+            List of (Document, similarity_score) tuples
+            similarity_score: 0-1，越大越相似
         """
         if not query or not query.strip():
             raise ValueError("Query cannot be empty")
 
         try:
-            docs_and_scores = self.vector_store.similarity_search_with_score(
+            docs_and_distances = self.vector_store.similarity_search_with_score(
                 query=query,
                 k=k
             )
-            return docs_and_scores
+            
+            # ✅ 将距离转换为相似度
+            docs_and_similarities = []
+            for doc, distance in docs_and_distances:
+                # 方法 1: 简单反转 (假设距离在 0-2 范围内)
+                # similarity = max(0, 1 - distance / 2)
+                
+                # 方法 2: 指数衰减（更平滑）
+                import math
+                similarity = math.exp(-distance)  # e^(-distance)
+                
+                docs_and_similarities.append((doc, similarity))
+            
+            return docs_and_similarities
 
         except Exception as e:
             raise Exception(f"Knowledge base search with scores failed: {e}")

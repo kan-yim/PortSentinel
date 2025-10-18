@@ -41,7 +41,8 @@ class HybridRagAgent:
         bm25_weight: float = 0.4,
         vector_weight: float = 0.6,
         rrf_k: int = 60,
-        use_llm: bool = True
+        use_llm: bool = True,
+        verbose: bool = True
     ):
         """
         初始化混合 RAG Agent
@@ -55,12 +56,14 @@ class HybridRagAgent:
             vector_weight: 向量检索权重
             rrf_k: RRF 参数
             use_llm: 是否使用 LLM（Query Expansion 和 Rerank）
+            verbose: 是否显示详细日志
         """
         self.vector_store = vector_store_interface
         self.bm25_weight = bm25_weight
         self.vector_weight = vector_weight
         self.rrf_k = rrf_k
         self.use_llm = use_llm
+        self.verbose = verbose
         
         # 初始化 BM25
         if bm25_retriever is None:
@@ -117,39 +120,50 @@ class HybridRagAgent:
         
         return " | ".join(query_parts)
     
+
+    
     def _hybrid_search_single_query(
         self,
         query: str,
         k: int = 10
-    ) -> List[Tuple[Dict[str, Any], float, str]]:
+    ) -> List[Tuple[Dict[str, Any], float, str, float, float]]:
         """
         单个查询的混合检索
         
-        Args:
-            query: 查询字符串
-            k: 每种方法返回的候选数
-        
         Returns:
-            List of (SOP dict, hybrid_score, source) tuples
-            source: 'bm25', 'vector', or 'both'
+            List of (SOP, hybrid_score, source, bm25_score, vector_score)
         """
-        results_dict = {}  # {sop_id: (sop, bm25_score, vector_score)}
+        results_dict = {}
         
-        # 1. BM25 检索
+        # ===== BM25 检索 =====
+        if self.verbose:
+            print(f"\n  [BM25] 检索中...")
+        
         bm25_results = []
         if self.bm25_retriever:
             try:
                 bm25_results = self.bm25_retriever.search_normalized(query, k=k)
+                
+                if self.verbose:
+                    print(f"  [BM25] ✓ 返回 {len(bm25_results)} 个结果")
+                    if bm25_results:
+                        print(f"  [BM25] Top 3:")
+                        for i, (sop, score) in enumerate(bm25_results[:3], 1):
+                            title = sop.get('Title', 'Unknown')
+                            print(f"    {i}. {title[:45]}... (归一化分数: {score:.4f})")
             except Exception as e:
-                print(f"Warning: BM25 search failed: {e}")
+                if self.verbose:
+                    print(f"  [BM25] ⚠️ 失败: {e}")
         
-        # 2. Vector 检索
+        # ===== 向量检索 =====
+        if self.verbose:
+            print(f"\n  [Vector] 检索中...")
+        
         vector_results = []
         try:
             docs_and_scores = self.vector_store.search_with_scores(query, k=k)
             
             for doc, score in docs_and_scores:
-                # 从 metadata 中提取完整 SOP JSON
                 full_sop_json = doc.metadata.get('full_sop_json')
                 
                 if full_sop_json:
@@ -157,12 +171,21 @@ class HybridRagAgent:
                         sop = json.loads(full_sop_json)
                         vector_results.append((sop, float(score)))
                     except json.JSONDecodeError:
-                        print(f"Warning: Failed to parse full_sop_json")
                         continue
+            
+            if self.verbose:
+                print(f"  [Vector] ✓ 返回 {len(vector_results)} 个结果")
+                if vector_results:
+                    print(f"  [Vector] Top 3:")
+                    for i, (sop, score) in enumerate(vector_results[:3], 1):
+                        title = sop.get('Title', 'Unknown')
+                        print(f"    {i}. {title[:45]}... (余弦相似度: {score:.4f})")
+                        
         except Exception as e:
-            print(f"Warning: Vector search failed: {e}")
+            if self.verbose:
+                print(f"  [Vector] ⚠️ 失败: {e}")
         
-        # 3. 合并结果（使用 Title 作为唯一标识）
+        # ===== 合并 =====
         for sop, bm25_score in bm25_results:
             sop_id = sop.get("Title", "")
             if sop_id:
@@ -172,23 +195,25 @@ class HybridRagAgent:
             sop_id = sop.get("Title", "")
             if sop_id:
                 if sop_id in results_dict:
-                    # 已存在，更新 vector_score
                     existing_sop, bm25_score, _ = results_dict[sop_id]
                     results_dict[sop_id] = (existing_sop, bm25_score, vector_score)
                 else:
-                    # 新增
                     results_dict[sop_id] = (sop, 0.0, vector_score)
         
-        # 4. 计算混合分数
+        if self.verbose:
+            print(f"\n  [Merge] ✓ 合并后唯一文档数: {len(results_dict)}")
+        
+        # ===== 计算混合分数 =====
+        if self.verbose:
+            print(f"  [Hybrid] 计算加权分数 (α={self.bm25_weight}, β={self.vector_weight})...")
+        
         hybrid_results = []
         for sop_id, (sop, bm25_score, vector_score) in results_dict.items():
-            # 加权组合
             hybrid_score = (
                 self.bm25_weight * bm25_score +
                 self.vector_weight * vector_score
             )
             
-            # 确定来源
             if bm25_score > 0 and vector_score > 0:
                 source = 'both'
             elif bm25_score > 0:
@@ -196,53 +221,49 @@ class HybridRagAgent:
             else:
                 source = 'vector'
             
-            hybrid_results.append((sop, hybrid_score, source))
+            # ✅ 保存原始分数
+            hybrid_results.append((sop, hybrid_score, source, bm25_score, vector_score))
         
-        # 按混合分数降序排序
+        # 排序
         hybrid_results.sort(key=lambda x: x[1], reverse=True)
         
+        # ✅ 显示时使用保存的原始分数
+        if self.verbose and hybrid_results:
+            print(f"  [Hybrid] Top 5 结果:")
+            for i, (sop, hybrid_score, source, bm25_score, vector_score) in enumerate(hybrid_results[:5], 1):
+                title = sop.get('Title', 'Unknown')
+                print(f"    {i}. {title[:35]}...")
+                print(f"       BM25={bm25_score:.4f}, Vec={vector_score:.4f}, Hybrid={hybrid_score:.4f} [{source}]")
+        
         return hybrid_results
-    
+
+
     def _reciprocal_rank_fusion(
         self,
-        multi_query_results: List[List[Tuple[Dict, float, str]]],
+        multi_query_results: List[List[Tuple[Dict, float, str, float, float]]],
         k: int = 60
     ) -> List[Tuple[Dict[str, Any], float]]:
-        """
-        RRF (Reciprocal Rank Fusion) 融合多查询结果
-        
-        RRF Score = Σ (1 / (k + rank_i))
-        
-        Args:
-            multi_query_results: 每个查询的检索结果列表
-            k: RRF 参数（默认 60）
-        
-        Returns:
-            融合后的结果 [(SOP, rrf_score), ...]
-        """
+        """RRF 融合（更新参数类型）"""
         rrf_scores = defaultdict(float)
-        sop_dict = {}  # {sop_id: sop}
+        sop_dict = {}
         
         for query_results in multi_query_results:
-            for rank, (sop, score, source) in enumerate(query_results):
+            # ✅ 解包 5 个元素
+            for rank, (sop, hybrid_score, source, bm25_score, vector_score) in enumerate(query_results):
                 sop_id = sop.get("Title", "")
                 if not sop_id:
                     continue
                 
-                # RRF 分数累加
                 rrf_scores[sop_id] += 1.0 / (k + rank + 1)
                 
-                # 保存 SOP
                 if sop_id not in sop_dict:
                     sop_dict[sop_id] = sop
         
-        # 构建结果列表
         fused_results = [
             (sop_dict[sop_id], rrf_score)
             for sop_id, rrf_score in rrf_scores.items()
         ]
         
-        # 按 RRF 分数降序排序
         fused_results.sort(key=lambda x: x[1], reverse=True)
         
         return fused_results
@@ -269,16 +290,6 @@ class HybridRagAgent:
     ) -> EnrichedContext:
         """
         混合检索主流程
-        
-        Args:
-            report: 事件报告
-            num_query_variants: Multi-Query 变体数量
-            k_per_query: 每个查询的候选数
-            top_k_after_rrf: RRF 后保留的文档数
-            final_top_k: 最终返回的 SOP 数量
-        
-        Returns:
-            EnrichedContext 包含完整 SOPs (原始 JSON 格式)
         """
         # ===== Step 1: Multi-Query 生成 =====
         original_query = self._build_search_query(report)
@@ -301,13 +312,19 @@ class HybridRagAgent:
         total_bm25_candidates = 0
         total_vector_candidates = 0
         
-        for query in expanded_queries:
+        for idx, query in enumerate(expanded_queries, 1):
+            if self.verbose:
+                print(f"\n{'=' * 80}")
+                print(f"[Hybrid Search] 查询 {idx}/{len(expanded_queries)}")
+                print(f"{'=' * 80}")
+            
             query_results = self._hybrid_search_single_query(query, k=k_per_query)
             all_query_results.append(query_results)
             
-            # 统计
-            bm25_count = sum(1 for _, _, src in query_results if src in ['bm25', 'both'])
-            vector_count = sum(1 for _, _, src in query_results if src in ['vector', 'both'])
+            # ✅ 修复：解包 5 个元素 (sop, hybrid_score, source, bm25_score, vector_score)
+            bm25_count = sum(1 for _, _, src, bm25_s, _ in query_results if src in ['bm25', 'both'])
+            vector_count = sum(1 for _, _, src, _, vec_s in query_results if src in ['vector', 'both'])
+            
             total_bm25_candidates += bm25_count
             total_vector_candidates += vector_count
         
@@ -337,14 +354,13 @@ class HybridRagAgent:
             )
         except Exception as e:
             print(f"Warning: Reranking failed: {e}")
-            # 失败时直接使用 RRF 结果
             reranked_results = rrf_top_k[:final_top_k]
         
         print(f"\n[Rerank] Final Top {len(reranked_results)} SOPs:")
         for i, (sop, score) in enumerate(reranked_results, 1):
             print(f"  {i}. {sop.get('Title', 'Unknown')[:60]}... (score: {score:.4f})")
         
-        # ===== Step 5: 提取完整 SOP（原始 JSON 格式）=====
+        # ===== Step 5: 提取完整 SOP =====
         final_sops = self._extract_full_sops(reranked_results)
         
         # ===== Step 6: 生成摘要 =====
@@ -372,7 +388,7 @@ class HybridRagAgent:
         enriched_context = EnrichedContext(
             original_report=report,
             expanded_queries=expanded_queries,
-            retrieved_sops=final_sops,  # 完整的 SOP JSON
+            retrieved_sops=final_sops,
             retrieval_summary=retrieval_summary,
             retrieval_metrics=metrics
         )
@@ -424,7 +440,8 @@ class RagAgent(HybridRagAgent):
         """使用默认配置初始化"""
         super().__init__(
             vector_store_interface=vector_store_interface,
-            use_llm=False  # 默认不使用 LLM（更快）
+            use_llm=False,  # 默认不使用 LLM（更快）
+            verbose=False   # 默认不显示详细日志
         )
     
     def retrieve(self, report: IncidentReport, k: int = 3) -> EnrichedContext:

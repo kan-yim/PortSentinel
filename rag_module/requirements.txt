@@ -20,3 +20,7 @@ pytest-mock>=3.12.0
 
 # Optional: For better async support
 aiohttp>=3.9.0
+
+rank-bm25>=0.2.2       
+scikit-learn>=1.3.0        
+numpy>=1.24.0             

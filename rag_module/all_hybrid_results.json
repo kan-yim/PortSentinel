@@ -23,9 +23,10 @@
       "raw_text": "Subject: Unable to create vessel advice\n\nError VESSEL_ERR_4..."
     },
     "expanded_queries": [
-      "Error code: VESSEL_ERR_4 | Unable to create vessel advice due to duplicate system vessel name | Module: Vessel",
-      "error code: vessel_err_4 unable create vessel advice due duplicate system vessel name module: vessel",
-      "VESSEL_ERR_4 Unable to create vessel advice due to duplicate system vessel name Vessel"
+      "Error code: VESSEL_ERR_4 | Unable to create vessel advice due to duplicate system vessel name | Module: Vessel | Entities: vessel_name: LIONCITY07, error_code: VESSEL_ERR_4",
+      "Duplicate vessel name error VESSEL_ERR_4 preventing vessel advice creation in Vessel module for vessel LIONCITY07",
+      "Troubleshooting VESSEL_ERR_4: Conflict with existing vessel name LIONCITY07 blocking advice generation in Vessel system",
+      "Handling duplicate system vessel name issue causing VESSEL_ERR_4 error during vessel advice setup in Vessel module"
     ],
     "retrieved_sops": [
       {
@@ -37,28 +38,28 @@
         "Module": "Vessel"
       },
       {
-        "Title": "CNTR: Trying to create Container Range From CONTAINER_ID to BSIU 323099, but we are hit with Container Range Error",
-        "Overview": "We are attempting to create a container range from CONTAINER_ID to CONTAINER_ID, but encountered an error: 'Overlapping container range(s) found.' However, the specified range could not be located. A query for the range from CONTAINER_ID to CONTAINER_ID returned a different range. The concern is that the range isn't visible in the system, despite being created by the relevant process. A search on our end also returned a different range. Why is this discrepancy not visible on their end?",
-        "Preconditions": null,
-        "Resolution": "1. How to check container parameter range and whether it overlap?\n2. System check the serial number range excluding Check Digit\n3. For this case, the serial number overlap. BSIU 3430001\n4. Confirm scope and reproduction on a safe test entity.\n5. Check recent deployments/config toggles around the timestamp.\n6. Apply compliant fix and document the change.\n6.1 Capture before/after evidence (screenshots/queries).\n6.2 Update the case with sanitized details.",
-        "Verification": "1. Run the end-to-end journey again; confirm success.\n2. No new errors for 30 minutes in monitoring.\n3. Attach evidence and close the case.",
-        "Module": "Container Report"
-      },
-      {
         "Title": "VSL: HI Team, Similar with previous case: TICKET_NUMBER where we have duplicate Abbreviated Vessel Name.",
         "Overview": "Case: TICKET_NUMBER where we have duplicate Abbreviated Vessel Name.\nPlease assist to change Abbreviated Vessel Name for new VESSEL_NUMBER with callsign CALLSIGN_ID to be VESSEL_NAME_SHORT i/o VESSEL_NAME_LONG to avoid same name with callsign CALLSIGN_ID2 as showing error on below screenshot while creating new Vessel Advice.",
         "Preconditions": null,
         "Resolution": "1. SQLB patch and Please ask user to retry\n2. Confirm scope and reproduction on a safe test entity.\n3. Check recent deployments/config toggles around the timestamp.\n4. Apply compliant fix and document the change.\n4.1 Capture before/after evidence (screenshots/queries).\n4.2 Update the case with sanitized details.\n5. Validate end-to-end user flow.\n5.1 Capture before/after evidence (screenshots/queries).\n5.2 Update the case with sanitized details.",
         "Verification": "1. Run the end-to-end journey again; confirm success.\n2. No new errors for 30 minutes in monitoring.\n3. Attach evidence and close the case.",
         "Module": "Vessel"
+      },
+      {
+        "Title": "CNTR: Trying to create Container Range From CONTAINER_ID to BSIU 323099, but we are hit with Container Range Error",
+        "Overview": "We are attempting to create a container range from CONTAINER_ID to CONTAINER_ID, but encountered an error: 'Overlapping container range(s) found.' However, the specified range could not be located. A query for the range from CONTAINER_ID to CONTAINER_ID returned a different range. The concern is that the range isn't visible in the system, despite being created by the relevant process. A search on our end also returned a different range. Why is this discrepancy not visible on their end?",
+        "Preconditions": null,
+        "Resolution": "1. How to check container parameter range and whether it overlap?\n2. System check the serial number range excluding Check Digit\n3. For this case, the serial number overlap. BSIU 3430001\n4. Confirm scope and reproduction on a safe test entity.\n5. Check recent deployments/config toggles around the timestamp.\n6. Apply compliant fix and document the change.\n6.1 Capture before/after evidence (screenshots/queries).\n6.2 Update the case with sanitized details.",
+        "Verification": "1. Run the end-to-end journey again; confirm success.\n2. No new errors for 30 minutes in monitoring.\n3. Attach evidence and close the case.",
+        "Module": "Container Report"
       }
     ],
-    "retrieval_summary": "Retrieved 3 SOP(s) for incident ALR-861631 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 3 query variants. Processed 10 candidates after RRF. Top match: VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice Affected module: Vessel Error code: VESSEL_ERR_4",
+    "retrieval_summary": "Retrieved 3 SOP(s) for incident ALR-861631 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 4 query variants. Processed 10 candidates after RRF. Top match: VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice Affected module: Vessel Error code: VESSEL_ERR_4",
     "retrieval_metrics": {
-      "num_expanded_queries": 3,
-      "num_bm25_candidates": 26,
-      "num_vector_candidates": 13,
-      "num_merged_candidates": 14,
+      "num_expanded_queries": 4,
+      "num_bm25_candidates": 35,
+      "num_vector_candidates": 19,
+      "num_merged_candidates": 19,
       "num_after_rrf": 10,
       "num_final_results": 3,
       "bm25_weight": 0.4,
@@ -86,9 +87,10 @@
       "raw_text": "Error: Overlapping container range(s) found..."
     },
     "expanded_queries": [
-      "Trying to create Container Range but hit with overlapping error | Module: Container",
-      "trying create container range hit overlapping error module: container",
-      "Trying to create Container Range but hit with overlapping error Container"
+      "Trying to create Container Range but hit with overlapping error | Module: Container | Entities: container_number: BSIU323099",
+      "Container Range creation fails due to overlap conflict in Container module for container_number BSIU323099",
+      "Error on Container module when defining Container Range: overlapping range detected for container_number BSIU323099",
+      "Overlap validation error encountered during Container Range setup in Container system, container_number BSIU323099"
     ],
     "retrieved_sops": [
       {
@@ -108,20 +110,20 @@
         "Module": "Container"
       },
       {
-        "Title": "EDI: Intermittent 408 on '/auth/token' during webhook deliveries to PARTNER_ID",
-        "Overview": "Intermittent 408 on '/auth/token' during webhook deliveries to PARTNER_ID. slowest 5% of requests latency > 12s triggered breaker; retries hit max; delivery backlog observed. Downstream customer timeline showed gaps; LOCATION ops unaffected but visibility degraded.",
+        "Title": "CNTR: Weight and size attributes for CONTAINER_ID do not align with manifest data",
+        "Overview": "Weight and size attributes for CONTAINER_ID do not align with manifest data. OMS lists 22G1 whereas the EDI intake translated to 45R1—slot planning at PSA Pasir Panjang misallocated. Voyage QS19; last known location Block B3. Suspect duplicate CODECO from yesterday caused field overwrite.",
         "Preconditions": null,
-        "Resolution": "1. Scaled read replicas and split hot key namespaces; added half-open probes to breaker; restored normal delivery and rebuilt backlog safely.\n2. Communications used masked ticket references where applicable.\n3. Reproduce the failing call on a safe test entity.\n3.1 Use read-only token; capture status code and latency.\n3.2 Record request ID/correlation ID for log search.\n4. Check API gateway/service health around the incident window.\n5. Review auth and permissions for the calling user/client.\n5.1 Refresh/rotate token; confirm scopes.\n5.2 Verify NTP/clock skew; resync if >2 seconds.",
-        "Verification": "1. Re-run the endpoint; expect 2xx and correct JSON fields.\n2. Observe error rate and latency for 30 minutes; under baseline.\n3. Attach request/response evidence to the case.",
-        "Module": "EDI/API"
+        "Resolution": "1. Ran de-duplication on EDI queue and restored the correct CODECO snapshot.\n2. Set precedence to prefer TOS for equipment attributes; added a rule to reject backdated updates within 120 minutes.\n2.1 Archive ACK with timestamp and execution ID.\n2.2 Notify partner with sanitized sample if needed.\n3. Customer notified using a masked ticket reference.\n4. Locate the problematic EDI message/file and quarantine it.\n5. Validate structure and partner-specific rules.\n5.1 Run schema validator (segments/qualifiers/max-occurrence).\n5.2 Fix qualifier mapping or split oversized occurrences.\n6. Correct normalization/mapping and reprocess safely.\n6.1 Use idempotency token to prevent duplicates.\n6.2 Re-ingest from quarantine and monitor translator logs.",
+        "Verification": "1. Confirm next run processed successfully; no duplicates.\n2. Verify partner ACK/CONTRL is archived.\n3. Attach validator logs and sanitized sample.",
+        "Module": "Container Booking"
       }
     ],
-    "retrieval_summary": "Retrieved 3 SOP(s) for incident CONT-001 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 3 query variants. Processed 10 candidates after RRF. Top match: CNTR: Trying to create Container Range From CONTAINER_ID to BSIU 323099, but we are hit with Container Range Error Affected module: Container",
+    "retrieval_summary": "Retrieved 3 SOP(s) for incident CONT-001 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 4 query variants. Processed 10 candidates after RRF. Top match: CNTR: Trying to create Container Range From CONTAINER_ID to BSIU 323099, but we are hit with Container Range Error Affected module: Container",
     "retrieval_metrics": {
-      "num_expanded_queries": 3,
-      "num_bm25_candidates": 25,
-      "num_vector_candidates": 20,
-      "num_merged_candidates": 18,
+      "num_expanded_queries": 4,
+      "num_bm25_candidates": 33,
+      "num_vector_candidates": 24,
+      "num_merged_candidates": 21,
       "num_after_rrf": 10,
       "num_final_results": 3,
       "bm25_weight": 0.4,
@@ -149,9 +151,10 @@
       "raw_text": "Alert: EDI message EDI-MSG-789456 stuck in ERROR..."
     },
     "expanded_queries": [
-      "EDI message stuck in ERROR status, no acknowledgment received | Module: EDI/API",
-      "edi message stuck error status, acknowledgment received module: edi/api",
-      "EDI message stuck in ERROR status, no acknowledgment received EDI/API"
+      "EDI message stuck in ERROR status, no acknowledgment received | Module: EDI/API | Entities: correlation_id: EDI-MSG-789456",
+      "EDI transaction remains in error state without receiving acknowledgment | System: EDI/API | correlation_id: EDI-MSG-789456",
+      "EDI message processing failure due to missing acknowledgment in EDI/API module | correlation_id: EDI-MSG-789456",
+      "Troubleshooting EDI message error status caused by absent acknowledgment | Affected area: EDI/API | correlation_id: EDI-MSG-789456"
     ],
     "retrieved_sops": [
       {
@@ -163,28 +166,28 @@
         "Module": "EDI/API"
       },
       {
-        "Title": "API: Unexpected qualifier 'QUALIFIER' in EQD segment from PARTNER_ID; schema validation failed; containers in the message not reflected on the portal timeline.",
-        "Overview": "Unexpected qualifier 'QUALIFIER' in EQD segment from PARTNER_ID; schema validation failed; containers in the message not reflected on the portal timeline.",
+        "Title": "EDI: Spike in DLQ messages after routine maintenance; consumer group lag increased across EDI topic",
+        "Overview": "Spike in DLQ messages after routine maintenance; consumer group lag increased across EDI topic. Partner PARTNER_ID reported delayed acknowledgements; LOCATION ops not impacted.",
         "Preconditions": null,
-        "Resolution": "1. Implemented pre-ingest normalizer for qualifiers; updated partner IG notes; enabled anomaly detection for repeated segment errors exceeds threshold.\n1.1 Run schema validator (segments/qualifiers/max-occurrence).\n1.2 Fix qualifier mapping or split oversized occurrences.\n2. Communications used masked ticket references where applicable.\n3. Locate the problematic EDI message/file and quarantine it.\n4. Validate structure and partner-specific rules.\n4.1 Run schema validator (segments/qualifiers/max-occurrence).\n4.2 Fix qualifier mapping or split oversized occurrences.\n5. Correct normalization/mapping and reprocess safely.\n5.1 Use idempotency token to prevent duplicates.\n5.2 Re-ingest from quarantine and monitor translator logs.",
+        "Resolution": "1. Corrected cron schedule to UTC; added mutual exclusion lock and run-idempotency; published sanitized incident note and fixed dashboards.\n2. Communications used masked ticket references where applicable.\n3. Locate the problematic EDI message/file and quarantine it.\n4. Validate structure and partner-specific rules.\n4.1 Run schema validator (segments/qualifiers/max-occurrence).\n4.2 Fix qualifier mapping or split oversized occurrences.\n5. Correct normalization/mapping and reprocess safely.\n5.1 Use idempotency token to prevent duplicates.\n5.2 Re-ingest from quarantine and monitor translator logs.",
         "Verification": "1. Confirm next run processed successfully; no duplicates.\n2. Verify partner ACK/CONTRL is archived.\n3. Attach validator logs and sanitized sample.",
         "Module": "EDI/API"
       },
       {
-        "Title": "CNTR: Duplicate Container information received",
-        "Overview": "Received with conflicting duplicate entry for container information. Later message had older timestamp; last-writer-wins regressed status.",
+        "Title": "EDI: Translator rejected ANSI X12 301: missing BGM count alignment (UNH/UNT mismatch)",
+        "Overview": "Translator rejected ANSI X12 301: missing BGM count alignment (UNH/UNT mismatch). Partner PARTNER_ID interchange quarantined; downstream milestone not created.",
         "Preconditions": null,
-        "Resolution": "Verify in DB\nSELECT * FROM container WHERE cntr_no = :CONTAINER_NO ORDER BY created_at DESC;\nKeep the latest record (highest created_at) and delete earlier records — with a preview and a safe, bounded delete.\nSELECT c.* FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;\nSafe delete (keep latest only)\nDELETE c FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;",
-        "Verification": null,
-        "Module": "Container"
+        "Resolution": "1. Added de-duplication keyed by (controlNumber, docType, equipmentId, eventType); instated rule to discard stale duplicates; replayed healthy messages.\n2. Communications used masked ticket references where applicable.\n3. Locate the problematic EDI message/file and quarantine it.\n4. Validate structure and partner-specific rules.\n4.1 Run schema validator (segments/qualifiers/max-occurrence).\n4.2 Fix qualifier mapping or split oversized occurrences.\n5. Correct normalization/mapping and reprocess safely.\n5.1 Use idempotency token to prevent duplicates.\n5.2 Re-ingest from quarantine and monitor translator logs.",
+        "Verification": "1. Confirm next run processed successfully; no duplicates.\n2. Verify partner ACK/CONTRL is archived.\n3. Attach validator logs and sanitized sample.",
+        "Module": "EDI/API"
       }
     ],
-    "retrieval_summary": "Retrieved 3 SOP(s) for incident EDI-001 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 3 query variants. Processed 10 candidates after RRF. Top match: EDI: EDI Message Timeout or Delay in Acknowledgment Affected module: EDI/API",
+    "retrieval_summary": "Retrieved 3 SOP(s) for incident EDI-001 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 4 query variants. Processed 10 candidates after RRF. Top match: EDI: EDI Message Timeout or Delay in Acknowledgment Affected module: EDI/API",
     "retrieval_metrics": {
-      "num_expanded_queries": 3,
-      "num_bm25_candidates": 27,
-      "num_vector_candidates": 8,
-      "num_merged_candidates": 12,
+      "num_expanded_queries": 4,
+      "num_bm25_candidates": 32,
+      "num_vector_candidates": 23,
+      "num_merged_candidates": 23,
       "num_after_rrf": 10,
       "num_final_results": 3,
       "bm25_weight": 0.4,

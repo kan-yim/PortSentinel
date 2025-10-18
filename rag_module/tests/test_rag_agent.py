@@ -3,7 +3,7 @@
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 import sys
 from pathlib import Path
 
@@ -17,7 +17,7 @@ from parsing_agent.models import IncidentReport, Entity
 from rag_agent.validator import HybridRagAgent
 from rag_agent.models import EnrichedContext
 from data_sources.bm25_retriever import BM25Retriever
-from rag_agent.query_expander import RuleBasedQueryExpander
+from rag_agent.query_expander import QueryExpander
 from data_sources.reranker import SimpleReranker
 
 
@@ -98,10 +98,15 @@ def test_hybrid_search_integration(mock_vector_store, mock_bm25_retriever, sampl
     mock_vector_store.search_with_scores.return_value = [(mock_doc, 0.92)]
     
     # 创建 Agent
+    mock_query_expander = Mock()
+    mock_query_expander.expand_from_report.return_value = [
+        "Container range error overlapping | Module: Container"
+    ]
+
     agent = HybridRagAgent(
         vector_store_interface=mock_vector_store,
         bm25_retriever=mock_bm25_retriever,
-        query_expander=RuleBasedQueryExpander(),
+        query_expander=mock_query_expander,
         reranker=SimpleReranker(),
         use_llm=False
     )
@@ -123,17 +128,32 @@ def test_hybrid_search_integration(mock_vector_store, mock_bm25_retriever, sampl
     assert result.retrieval_metrics is not None
 
 
-def test_query_expansion():
+def test_query_expansion(sample_incident_report):
     """测试查询扩展"""
-    expander = RuleBasedQueryExpander()
-    
-    original = "Error code: VESSEL_ERR_4 | Unable to create vessel advice"
-    variants = expander.expand_query(original, num_variants=2)
-    
-    assert len(variants) >= 1
-    assert variants[0] == original
-    # 应该有至少一个变体
-    assert len(variants) > 1
+    class StubLLM:
+        def __init__(self, content: str):
+            self._content = content
+
+        def invoke(self, _messages):
+            class Response:
+                def __init__(self, text: str):
+                    self.content = text
+            return Response(self._content)
+
+    stub_output = (
+        "Container range overlap troubleshooting\n"
+        "Resolve duplicate container range issue\n"
+        "Investigate container allocation conflict"
+    )
+    expander = QueryExpander(llm=StubLLM(stub_output))
+
+    variants = expander.expand_from_report(sample_incident_report, num_variants=2)
+
+    assert len(variants) == 3  # 原始 + 2 个变体
+    assert sample_incident_report.problem_summary in variants[0]
+    # LLM 返回的前两个变体应该被采纳
+    assert variants[1] == "Container range overlap troubleshooting"
+    assert variants[2] == "Resolve duplicate container range issue"
 
 
 def test_rrf_fusion(mock_vector_store, mock_bm25_retriever, sample_incident_report):

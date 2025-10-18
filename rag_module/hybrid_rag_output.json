@@ -18,9 +18,10 @@
     "raw_text": "Alert: EDI message EDI-MSG-789456 stuck in ERROR..."
   },
   "expanded_queries": [
-    "EDI message stuck in ERROR status, no acknowledgment received | Module: EDI/API",
-    "edi message stuck error status, acknowledgment received module: edi/api",
-    "EDI message stuck in ERROR status, no acknowledgment received EDI/API"
+    "EDI message stuck in ERROR status, no acknowledgment received | Module: EDI/API | Entities: correlation_id: EDI-MSG-789456",
+    "EDI transaction remains in error state without receiving acknowledgment | System: EDI/API | correlation_id: EDI-MSG-789456",
+    "EDI message processing failure due to missing acknowledgment in EDI/API module | correlation_id: EDI-MSG-789456",
+    "Troubleshooting EDI message error status caused by absent acknowledgment | Affected area: EDI/API | correlation_id: EDI-MSG-789456"
   ],
   "retrieved_sops": [
     {
@@ -32,28 +33,28 @@
       "Module": "EDI/API"
     },
     {
-      "Title": "API: Unexpected qualifier 'QUALIFIER' in EQD segment from PARTNER_ID; schema validation failed; containers in the message not reflected on the portal timeline.",
-      "Overview": "Unexpected qualifier 'QUALIFIER' in EQD segment from PARTNER_ID; schema validation failed; containers in the message not reflected on the portal timeline.",
+      "Title": "EDI: Spike in DLQ messages after routine maintenance; consumer group lag increased across EDI topic",
+      "Overview": "Spike in DLQ messages after routine maintenance; consumer group lag increased across EDI topic. Partner PARTNER_ID reported delayed acknowledgements; LOCATION ops not impacted.",
       "Preconditions": null,
-      "Resolution": "1. Implemented pre-ingest normalizer for qualifiers; updated partner IG notes; enabled anomaly detection for repeated segment errors exceeds threshold.\n1.1 Run schema validator (segments/qualifiers/max-occurrence).\n1.2 Fix qualifier mapping or split oversized occurrences.\n2. Communications used masked ticket references where applicable.\n3. Locate the problematic EDI message/file and quarantine it.\n4. Validate structure and partner-specific rules.\n4.1 Run schema validator (segments/qualifiers/max-occurrence).\n4.2 Fix qualifier mapping or split oversized occurrences.\n5. Correct normalization/mapping and reprocess safely.\n5.1 Use idempotency token to prevent duplicates.\n5.2 Re-ingest from quarantine and monitor translator logs.",
+      "Resolution": "1. Corrected cron schedule to UTC; added mutual exclusion lock and run-idempotency; published sanitized incident note and fixed dashboards.\n2. Communications used masked ticket references where applicable.\n3. Locate the problematic EDI message/file and quarantine it.\n4. Validate structure and partner-specific rules.\n4.1 Run schema validator (segments/qualifiers/max-occurrence).\n4.2 Fix qualifier mapping or split oversized occurrences.\n5. Correct normalization/mapping and reprocess safely.\n5.1 Use idempotency token to prevent duplicates.\n5.2 Re-ingest from quarantine and monitor translator logs.",
       "Verification": "1. Confirm next run processed successfully; no duplicates.\n2. Verify partner ACK/CONTRL is archived.\n3. Attach validator logs and sanitized sample.",
       "Module": "EDI/API"
     },
     {
-      "Title": "CNTR: Duplicate Container information received",
-      "Overview": "Received with conflicting duplicate entry for container information. Later message had older timestamp; last-writer-wins regressed status.",
+      "Title": "EDI: Translator rejected ANSI X12 301: missing BGM count alignment (UNH/UNT mismatch)",
+      "Overview": "Translator rejected ANSI X12 301: missing BGM count alignment (UNH/UNT mismatch). Partner PARTNER_ID interchange quarantined; downstream milestone not created.",
       "Preconditions": null,
-      "Resolution": "Verify in DB\nSELECT * FROM container WHERE cntr_no = :CONTAINER_NO ORDER BY created_at DESC;\nKeep the latest record (highest created_at) and delete earlier records — with a preview and a safe, bounded delete.\nSELECT c.* FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;\nSafe delete (keep latest only)\nDELETE c FROM container c JOIN ( SELECT cntr_no, vessel_id, eta_ts, MAX(created_at) AS max_created_at FROM container WHERE cntr_no = :CONTAINER_NO AND vessel_id = :VESSEL_ID AND eta_ts = :ETA_TS GROUP BY cntr_no, vessel_id, eta_ts ) keep ON keep.cntr_no=c.cntr_no AND keep.vessel_id=c.vessel_id AND keep.eta_ts=c.eta_ts WHERE c.created_at < keep.max_created_at;",
-      "Verification": null,
-      "Module": "Container"
+      "Resolution": "1. Added de-duplication keyed by (controlNumber, docType, equipmentId, eventType); instated rule to discard stale duplicates; replayed healthy messages.\n2. Communications used masked ticket references where applicable.\n3. Locate the problematic EDI message/file and quarantine it.\n4. Validate structure and partner-specific rules.\n4.1 Run schema validator (segments/qualifiers/max-occurrence).\n4.2 Fix qualifier mapping or split oversized occurrences.\n5. Correct normalization/mapping and reprocess safely.\n5.1 Use idempotency token to prevent duplicates.\n5.2 Re-ingest from quarantine and monitor translator logs.",
+      "Verification": "1. Confirm next run processed successfully; no duplicates.\n2. Verify partner ACK/CONTRL is archived.\n3. Attach validator logs and sanitized sample.",
+      "Module": "EDI/API"
     }
   ],
-  "retrieval_summary": "Retrieved 3 SOP(s) for incident EDI-001 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 3 query variants. Processed 10 candidates after RRF. Top match: EDI: EDI Message Timeout or Delay in Acknowledgment Affected module: EDI/API",
+  "retrieval_summary": "Retrieved 3 SOP(s) for incident EDI-001 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 4 query variants. Processed 10 candidates after RRF. Top match: EDI: EDI Message Timeout or Delay in Acknowledgment Affected module: EDI/API",
   "retrieval_metrics": {
-    "num_expanded_queries": 3,
-    "num_bm25_candidates": 27,
-    "num_vector_candidates": 8,
-    "num_merged_candidates": 12,
+    "num_expanded_queries": 4,
+    "num_bm25_candidates": 32,
+    "num_vector_candidates": 23,
+    "num_merged_candidates": 23,
     "num_after_rrf": 10,
     "num_final_results": 3,
     "bm25_weight": 0.4,

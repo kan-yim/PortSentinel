@@ -14,7 +14,7 @@ sys.path.insert(0, str(parsing_module_path))
 
 from parsing_agent.models import IncidentReport
 from rag_agent.models import EnrichedContext, SopSnippet, RetrievalMetrics
-from rag_agent.query_expander import QueryExpander, RuleBasedQueryExpander
+from rag_agent.query_expander import QueryExpander
 from data_sources.vector_store_interface import VectorStoreInterface
 from data_sources.bm25_retriever import BM25Retriever
 from data_sources.reranker import SemanticReranker, SimpleReranker
@@ -77,14 +77,12 @@ class HybridRagAgent:
         
         # 初始化 Query Expander
         if query_expander is None:
-            if use_llm:
-                try:
-                    self.query_expander = QueryExpander()
-                except Exception as e:
-                    print(f"Warning: LLM Query Expander failed, using rule-based: {e}")
-                    self.query_expander = RuleBasedQueryExpander()
-            else:
-                self.query_expander = RuleBasedQueryExpander()
+            if not use_llm:
+                raise ValueError(
+                    "QueryExpander requires LLM support. "
+                    "Provide a custom query_expander when use_llm=False."
+                )
+            self.query_expander = QueryExpander()
         else:
             self.query_expander = query_expander
         
@@ -221,13 +219,10 @@ class HybridRagAgent:
             else:
                 source = 'vector'
             
-            # ✅ 保存原始分数
             hybrid_results.append((sop, hybrid_score, source, bm25_score, vector_score))
         
-        # 排序
         hybrid_results.sort(key=lambda x: x[1], reverse=True)
         
-        # ✅ 显示时使用保存的原始分数
         if self.verbose and hybrid_results:
             print(f"  [Hybrid] Top 5 结果:")
             for i, (sop, hybrid_score, source, bm25_score, vector_score) in enumerate(hybrid_results[:5], 1):
@@ -440,7 +435,7 @@ class RagAgent(HybridRagAgent):
         """使用默认配置初始化"""
         super().__init__(
             vector_store_interface=vector_store_interface,
-            use_llm=False,  # 默认不使用 LLM（更快）
+            use_llm=True,
             verbose=False   # 默认不显示详细日志
         )
     

@@ -1,198 +1,167 @@
-"""
-Multi-Query 生成器：从多个角度重写问题
-"""
+"""Multi-Query 生成器：使用 LLM 从多个角度重写问题。"""
 
 import os
-from typing import List
+from typing import List, Optional, TYPE_CHECKING
+
 from dotenv import load_dotenv
 from langchain_openai import AzureChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
+if TYPE_CHECKING:
+    from parsing_agent.models import IncidentReport
+
 
 class QueryExpander:
-    """
-    使用 LLM 生成多个查询变体
-    """
-    
+    """使用 Azure OpenAI LLM 生成查询变体。"""
+
     def __init__(
         self,
-        api_key: str = None,
-        azure_endpoint: str = None,
-        deployment: str = None,
-        api_version: str = None
+        api_key: Optional[str] = None,
+        azure_endpoint: Optional[str] = None,
+        deployment: Optional[str] = None,
+        api_version: Optional[str] = None,
+        llm: Optional[AzureChatOpenAI] = None
     ):
         """
-        初始化 Query Expander
-        
+        初始化 QueryExpander。
+
         Args:
             api_key: Azure OpenAI API key
             azure_endpoint: Azure endpoint
             deployment: Chat model deployment name
             api_version: API version
+            llm: 可选，自定义的 AzureChatOpenAI 实例（用于测试）
         """
         self.api_key = api_key or os.getenv("AZURE_OPENAI_API_KEY")
         self.azure_endpoint = azure_endpoint or os.getenv("AZURE_OPENAI_ENDPOINT")
         self.deployment = deployment or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
-        self.api_version = api_version or os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
-        
-        # 初始化 LLM
-        self.llm = AzureChatOpenAI(
-            api_key=self.api_key,
-            azure_endpoint=self.azure_endpoint,
-            azure_deployment=self.deployment,
-            api_version=self.api_version,
-            temperature=0.3  # 保持一定创造性但不过度发散
+        self.api_version = api_version or os.getenv(
+            "AZURE_OPENAI_API_VERSION",
+            "2024-02-15-preview"
         )
-        
-        # Multi-Query Prompt
+
+        if llm is not None:
+            self.llm = llm
+        else:
+            missing = [name for name, value in [
+                ("AZURE_OPENAI_API_KEY", self.api_key),
+                ("AZURE_OPENAI_ENDPOINT", self.azure_endpoint),
+                ("AZURE_OPENAI_DEPLOYMENT", self.deployment)
+            ] if not value]
+            if missing:
+                raise ValueError(
+                    "Missing Azure OpenAI configuration: "
+                    + ", ".join(missing)
+                )
+
+            self.llm = AzureChatOpenAI(
+                api_key=self.api_key,
+                azure_endpoint=self.azure_endpoint,
+                azure_deployment=self.deployment,
+                api_version=self.api_version,
+                temperature=0.3
+            )
+
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are an expert at generating multiple search query variations for technical incident reports.
-
-Given an incident query, generate {num_variants} different search queries that:
-1. Use synonyms and alternative technical terms
-2. Expand with related concepts and scenarios
-3. Remove redundant words while preserving key information
-4. Correct potential errors and standardize expressions
-5. Rephrase from different troubleshooting angles
-
-Focus on technical accuracy and relevance to SOP (Standard Operating Procedure) documentation.
-
-Output ONLY the queries, one per line, without numbering or explanation."""),
-            ("human", """Original incident query:
-{original_query}
-
-Generate {num_variants} search query variations:""")
+            (
+                "system",
+                "You are an expert assistant that rewrites technical incident reports "
+                "into multiple precise search queries for Standard Operating Procedure retrieval."
+            ),
+            (
+                "human",
+                "Original report summary:\n{report_context}\n\n"
+                "Primary search query:\n{original_query}\n\n"
+                "Generate {num_variants} alternative queries that:\n"
+                "1. Rephrase key technical terms and error descriptions\n"
+                "2. Introduce closely related troubleshooting vocabulary\n"
+                "3. Stay concise and focused on SOP retrieval\n"
+                "4. Remain highly relevant to the incident context\n\n"
+                "Return queries as plain text, one per line, without bullets or numbering."
+            )
         ])
-        
-        self.chain = self.prompt | self.llm | StrOutputParser()
-    
-    def expand_query(self, original_query: str, num_variants: int = 3) -> List[str]:
+
+    def expand_from_report(
+        self,
+        report: "IncidentReport",
+        num_variants: int = 3
+    ) -> List[str]:
         """
-        生成查询变体
-        
+        使用 LLM 从 IncidentReport 生成查询变体。
+
         Args:
-            original_query: 原始查询
-            num_variants: 生成变体数量
-        
+            report: 结构化事故报告
+            num_variants: 希望生成的变体数量（不包含原始查询）
+
         Returns:
-            包含原始查询和变体的列表
+            包含原始查询和 LLM 生成变体的列表
         """
+        if num_variants < 0:
+            raise ValueError("num_variants must be >= 0")
+
+        problem_summary = getattr(report, "problem_summary", "") or ""
+        affected_module = getattr(report, "affected_module", "")
+        error_code = getattr(report, "error_code", "")
+        additional_notes = getattr(report, "additional_notes", "")
+
+        entity_strings = []
+        for entity in getattr(report, "entities", []) or []:
+            entity_type = getattr(entity, "type", "") or ""
+            entity_value = getattr(entity, "value", "") or ""
+            if entity_type and entity_value:
+                entity_strings.append(f"{entity_type}: {entity_value}")
+
+        query_parts = []
+        if error_code:
+            query_parts.append(f"Error code: {error_code}")
+        if problem_summary:
+            query_parts.append(problem_summary)
+        if affected_module:
+            query_parts.append(f"Module: {affected_module}")
+        if entity_strings:
+            query_parts.append("Entities: " + ", ".join(entity_strings))
+
+        original_query = " | ".join(query_parts) or problem_summary or "Technical incident report"
+
+        report_context_lines = [
+            f"Problem summary: {problem_summary or 'N/A'}",
+            f"Affected module: {affected_module or 'Unknown'}",
+            f"Error code: {error_code or 'None'}",
+            f"Entities: {', '.join(entity_strings) if entity_strings else 'None'}",
+            f"Additional notes: {additional_notes or 'None'}"
+        ]
+        report_context = "\n".join(report_context_lines)
+
+        messages = self.prompt.format_messages(
+            original_query=original_query,
+            report_context=report_context,
+            num_variants=num_variants
+        )
+
         try:
-            # 调用 LLM 生成变体
-            response = self.chain.invoke({
-                "original_query": original_query,
-                "num_variants": num_variants
-            })
-            
-            # 解析响应（每行一个查询）
-            variants = [line.strip() for line in response.strip().split('\n') if line.strip()]
-            
-            # 去重并限制数量
-            unique_variants = list(dict.fromkeys(variants))[:num_variants]
-            
-            # 返回：原始查询 + 变体
-            all_queries = [original_query] + unique_variants
-            
-            return all_queries
-            
-        except Exception as e:
-            print(f"Warning: Query expansion failed: {e}")
-            # 失败时返回原始查询
-            return [original_query]
-    
-    def expand_from_report(self, report, num_variants: int = 3) -> List[str]:
-        """
-        从 IncidentReport 生成查询变体
-        
-        Args:
-            report: IncidentReport 对象
-            num_variants: 变体数量
-        
-        Returns:
-            查询列表
-        """
-        # 构建初始查询
-        query_parts = []
-        
-        if report.error_code:
-            query_parts.append(f"Error code: {report.error_code}")
-        
-        query_parts.append(report.problem_summary)
-        
-        if report.affected_module:
-            query_parts.append(f"Module: {report.affected_module}")
-        
-        original_query = " | ".join(query_parts)
-        
-        return self.expand_query(original_query, num_variants)
+            response = self.llm.invoke(messages)
+        except Exception as exc:
+            raise RuntimeError(f"LLM query expansion failed: {exc}") from exc
 
+        content = getattr(response, "content", None)
+        if content is None:
+            content = str(response)
 
-# 简化版本（无 LLM，使用规则）
-class RuleBasedQueryExpander:
-    """
-    基于规则的查询扩展（无需 LLM）
-    """
-    
-    def expand_query(self, original_query: str, num_variants: int = 2) -> List[str]:
-        """
-        使用简单规则生成变体
-        """
-        queries = [original_query]
-        
-        # 变体 1: 提取关键词
-        keywords = self._extract_keywords(original_query)
-        if keywords:
-            queries.append(" ".join(keywords))
-        
-        # 变体 2: 简化版（只保留核心术语）
-        simplified = self._simplify_query(original_query)
-        if simplified and simplified != original_query:
-            queries.append(simplified)
-        
-        return queries[:num_variants + 1]
-    
-    def _extract_keywords(self, query: str) -> List[str]:
-        """提取关键词"""
-        # 移除常见停用词
-        stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 
-                     'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'been', 'be'}
-        
-        words = query.lower().split()
-        keywords = [w for w in words if w not in stopwords and len(w) > 2]
-        
-        return keywords
-    
-    def _simplify_query(self, query: str) -> str:
-        """简化查询"""
-        # 移除 "Error code:", "Module:" 等前缀
-        parts = query.split("|")
-        
-        # 只保留最核心的部分
-        core_parts = []
-        for part in parts:
-            cleaned = part.strip()
-            if ":" in cleaned:
-                cleaned = cleaned.split(":", 1)[1].strip()
-            if cleaned:
-                core_parts.append(cleaned)
-        
-        return " ".join(core_parts) if core_parts else query
-    
-    def expand_from_report(self, report, num_variants: int = 2) -> List[str]:
-        """从报告生成变体"""
-        query_parts = []
-        
-        if report.error_code:
-            query_parts.append(f"Error code: {report.error_code}")
-        
-        query_parts.append(report.problem_summary)
-        
-        if report.affected_module:
-            query_parts.append(f"Module: {report.affected_module}")
-        
-        original_query = " | ".join(query_parts)
-        
-        return self.expand_query(original_query, num_variants)
+        generated_queries = [
+            line.strip()
+            for line in content.splitlines()
+            if line.strip()
+        ]
+
+        unique_variants: List[str] = []
+        seen = set()
+        for variant in generated_queries:
+            if variant not in seen and variant.lower() != original_query.lower():
+                unique_variants.append(variant)
+                seen.add(variant)
+            if len(unique_variants) >= num_variants:
+                break
+
+        return [original_query] + unique_variants

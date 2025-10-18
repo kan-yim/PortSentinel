@@ -25,7 +25,7 @@ def example_1_basic_usage():
     vector_store = VectorStoreInterface(persist_directory="db_chroma_kb")
     rag_agent = HybridRagAgent(
         vector_store_interface=vector_store,
-        use_llm=False
+        use_llm=True
     )
 
     # 创建测试报告
@@ -118,7 +118,7 @@ def example_2_container_issue():
     vector_store = VectorStoreInterface(persist_directory="db_chroma_kb")
     rag_agent = HybridRagAgent(
         vector_store_interface=vector_store,
-        use_llm=False
+        use_llm=True
     )
 
     report = IncidentReport(
@@ -160,7 +160,7 @@ def example_3_export_to_json():
     vector_store = VectorStoreInterface(persist_directory="db_chroma_kb")
     rag_agent = HybridRagAgent(
         vector_store_interface=vector_store,
-        use_llm=False
+        use_llm=True
     )
 
     report = IncidentReport(
@@ -232,7 +232,7 @@ def example_4_compare_methods():
         vector_store_interface=vector_store,
         bm25_weight=0.7,
         vector_weight=0.3,
-        use_llm=False
+        use_llm=True
     )
     enriched1 = agent1.retrieve(report, final_top_k=3)
     print(f"Top 1: {enriched1.retrieved_sops[0].get('Title', 'N/A')[:60]}...")
@@ -243,7 +243,7 @@ def example_4_compare_methods():
         vector_store_interface=vector_store,
         bm25_weight=0.3,
         vector_weight=0.7,
-        use_llm=False
+        use_llm=True
     )
     enriched2 = agent2.retrieve(report, final_top_k=3)
     print(f"Top 1: {enriched2.retrieved_sops[0].get('Title', 'N/A')[:60]}...")
@@ -254,7 +254,7 @@ def example_4_compare_methods():
         vector_store_interface=vector_store,
         bm25_weight=0.5,
         vector_weight=0.5,
-        use_llm=False
+        use_llm=True
     )
     enriched3 = agent3.retrieve(report, final_top_k=3)
     print(f"Top 1: {enriched3.retrieved_sops[0].get('Title', 'N/A')[:60]}...")

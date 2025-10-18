@@ -151,39 +151,38 @@ class VectorStoreInterface:
     def search_with_scores(
         self,
         query: str,
-        k: int = 3
+        k: int = 5
     ) -> List[tuple[Document, float]]:
         """
-        执行相似度搜索并返回文档和相似度分数
+        执行相似度搜索并返回余弦相似度分数
         
-        注意：Chroma 返回的是距离，这里转换为相似度
-        
-        Returns:
-            List of (Document, similarity_score) tuples
-            similarity_score: 0-1，越大越相似
+        ✅ 只搜索 header，使用 metadata 过滤
+        ✅ 返回余弦相似度（0-1，越大越相似）
         """
         if not query or not query.strip():
             raise ValueError("Query cannot be empty")
 
         try:
+            # ✅ 使用 filter 只搜索 header
+            # 搜索更多文档以确保有足够的 header
+            search_k = 5
+            
             docs_and_distances = self.vector_store.similarity_search_with_score(
                 query=query,
-                k=k
+                k=search_k,
+                filter={"chunk_type": "header"}  # ✅ 只搜索 header
             )
             
-            # ✅ 将距离转换为相似度
+            # ✅ 余弦相似度转换
+            # Chroma 返回的 distance = 1 - cosine_similarity
+            # 所以 similarity = 1 - distance
             docs_and_similarities = []
             for doc, distance in docs_and_distances:
-                # 方法 1: 简单反转 (假设距离在 0-2 范围内)
-                # similarity = max(0, 1 - distance / 2)
-                
-                # 方法 2: 指数衰减（更平滑）
-                import math
-                similarity = math.exp(-distance)  # e^(-distance)
-                
+                similarity = 1 - distance  # 转换为余弦相似度
                 docs_and_similarities.append((doc, similarity))
             
-            return docs_and_similarities
+            # 只返回前 k 个
+            return docs_and_similarities[:k]
 
         except Exception as e:
             raise Exception(f"Knowledge base search with scores failed: {e}")

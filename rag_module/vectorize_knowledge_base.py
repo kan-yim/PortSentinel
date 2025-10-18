@@ -9,7 +9,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 
 from dotenv import load_dotenv
 from langchain_openai import AzureOpenAIEmbeddings
@@ -45,6 +45,9 @@ class KnowledgeBaseVectorizer:
         """
         self.kb_json_path = kb_json_path
         self.output_dir = output_dir
+        
+        # 存储完整的 SOP 数据（用于快速检索）
+        self.sop_data_map = {}  # {sop_id: 完整的SOP数据}
 
         # Get Azure credentials
         self.api_key = api_key or os.getenv("AZURE_OPENAI_API_KEY")
@@ -89,10 +92,11 @@ class KnowledgeBaseVectorizer:
         """
         将 SOP 转换为 LangChain Document 对象
 
-        每个 SOP 创建多个文档块以提高检索精度:
-        1. 标题 + Overview
-        2. 标题 + Resolution
-        3. 标题 + Preconditions (如果存在)
+        每个 SOP 创建两级文档块：
+        1. Header: Title + Overview (用于匹配) - 存储完整 SOP 的 JSON 字符串
+        2. Content: 其他字段分块 (preconditions, resolution, verification)
+        
+        通过在 Header 的 metadata 中存储完整 JSON，实现直接关联
         """
         documents = []
 
@@ -106,61 +110,83 @@ class KnowledgeBaseVectorizer:
             preconditions = sop.get("preconditions")
             module = sop.get("module", "Unknown")
 
-            # 文档 1: 标题 + Overview (问题描述)
-            if overview:
-                doc1 = Document(
+            # 生成唯一的 SOP ID
+            sop_id = f"sop_{idx}"
+            
+            # 保存完整的 SOP 数据到内存映射
+            self.sop_data_map[sop_id] = {
+                "标题": title,
+                "overview": overview,
+                "preconditions": preconditions,
+                "resolution": resolution,
+                "verification": verification,
+                "module": module
+            }
+            
+            # 将完整 SOP 数据序列化为 JSON 字符串（存入 metadata）
+            sop_json = json.dumps(self.sop_data_map[sop_id], ensure_ascii=False)
+
+            # 文档 1: Header - Title + Overview (用于快速匹配)
+            # 关键：在 metadata 中存储完整的 SOP JSON
+            if title or overview:
+                doc_header = Document(
                     page_content=f"Title: {title}\n\nOverview:\n{overview}",
                     metadata={
+                        "sop_id": sop_id,
                         "sop_title": title,
                         "module": module,
-                        "chunk_type": "overview",
+                        "chunk_type": "header",
                         "sop_index": idx,
+                        "full_sop_json": sop_json,  # 完整的 SOP 数据
                         "source": "knowledge_base_structured.json"
                     }
                 )
-                documents.append(doc1)
+                documents.append(doc_header)
 
-            # 文档 2: 标题 + Resolution (解决步骤)
-            if resolution:
-                doc2 = Document(
-                    page_content=f"Title: {title}\n\nResolution Steps:\n{resolution}",
-                    metadata={
-                        "sop_title": title,
-                        "module": module,
-                        "chunk_type": "resolution",
-                        "sop_index": idx,
-                        "source": "knowledge_base_structured.json"
-                    }
-                )
-                documents.append(doc2)
-
-            # 文档 3: 标题 + Preconditions (如果存在)
+            # 文档 2-4: Content 块（保留用于更细粒度的检索，可选）
+            # 这些块主要用于辅助检索，实际使用时从 Header 的 full_sop_json 获取数据
+            
             if preconditions:
-                doc3 = Document(
+                doc_precond = Document(
                     page_content=f"Title: {title}\n\nPreconditions:\n{preconditions}",
                     metadata={
+                        "sop_id": sop_id,
                         "sop_title": title,
                         "module": module,
-                        "chunk_type": "preconditions",
+                        "chunk_type": "content_preconditions",
                         "sop_index": idx,
                         "source": "knowledge_base_structured.json"
                     }
                 )
-                documents.append(doc3)
+                documents.append(doc_precond)
 
-            # 文档 4: 标题 + Verification (验证步骤)
+            if resolution:
+                doc_resolution = Document(
+                    page_content=f"Title: {title}\n\nResolution Steps:\n{resolution}",
+                    metadata={
+                        "sop_id": sop_id,
+                        "sop_title": title,
+                        "module": module,
+                        "chunk_type": "content_resolution",
+                        "sop_index": idx,
+                        "source": "knowledge_base_structured.json"
+                    }
+                )
+                documents.append(doc_resolution)
+
             if verification:
-                doc4 = Document(
+                doc_verif = Document(
                     page_content=f"Title: {title}\n\nVerification Steps:\n{verification}",
                     metadata={
+                        "sop_id": sop_id,
                         "sop_title": title,
                         "module": module,
-                        "chunk_type": "verification",
+                        "chunk_type": "content_verification",
                         "sop_index": idx,
                         "source": "knowledge_base_structured.json"
                     }
                 )
-                documents.append(doc4)
+                documents.append(doc_verif)
 
         print(f"  ✓ 创建了 {len(documents)} 个文档块 (来自 {len(sops)} 个 SOP)")
         return documents
@@ -264,14 +290,35 @@ class KnowledgeBaseVectorizer:
 
             # 6. 测试检索
             print(f"\n正在测试检索功能...")
-            test_query = "VESSEL_ERR_4"
-            results = vector_store.similarity_search(test_query, k=3)
-            print(f"  ✓ 测试查询 '{test_query}' 返回 {len(results)} 个结果")
+            test_query = "Trying to create Container Range From CONTAINER_ID to BSIU "
+            
+            # 只搜索 Header 层
+            results = vector_store.similarity_search(
+                test_query,
+                k=3,
+                filter={"chunk_type": "header"}
+            )
+            
+            print(f"  ✓ 测试查询 '{test_query}' 返回 {len(results)} 个匹配的 SOP")
 
             if results:
-                print(f"\n  示例结果:")
-                for i, doc in enumerate(results[:2], 1):
-                    print(f"    {i}. {doc.metadata.get('sop_title', 'Unknown')[:60]}...")
+                print(f"\n  示例：重构为原始 JSON 格式")
+                
+                # 取第一个匹配结果
+                matched_header = results[0]
+                
+                # 直接从 metadata 中提取完整的 SOP JSON
+                full_sop_json = matched_header.metadata.get('full_sop_json', '{}')
+                full_sop = json.loads(full_sop_json)
+                
+                print(f"\n  匹配到的 SOP:")
+                print(json.dumps(full_sop, indent=2, ensure_ascii=False))
+                
+                print(f"\n  所有匹配结果的标题:")
+                for i, doc in enumerate(results, 1):
+                    sop_title = doc.metadata.get('sop_title', 'Unknown')
+                    module = doc.metadata.get('module', 'Unknown')
+                    print(f"    {i}. [{module}] {sop_title[:60]}...")
 
             print("\n" + "=" * 80)
             print("✓ 知识库向量化完成!")

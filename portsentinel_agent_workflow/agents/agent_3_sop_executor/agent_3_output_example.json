@@ -1,0 +1,55 @@
+{
+  "original_context": {
+    "original_report": {
+      "incident_id": "ALR-861631",
+      "source_type": "Email",
+      "received_timestamp_utc": "2025-10-18T13:44:49.303846",
+      "reported_timestamp_hint": null,
+      "urgency": "High",
+      "affected_module": "Vessel",
+      "entities": [
+        {
+          "type": "VESSEL_NAME",
+          "value": "LIONCITY07"
+        },
+        {
+          "type": "ERROR_CODE",
+          "value": "VESSEL_ERR_4"
+        }
+      ],
+      "error_code": "VESSEL_ERR_4",
+      "problem_summary": "Customer unable to create vessel advice for LIONCITY07. Error code VESSEL_ERR_4: 'Vessel Name has been used by other vessel advice'.",
+      "potential_cause_hint": null,
+      "raw_text": "Customer reported unable to create vessel advice for LIONCITY07 in VAS. Error code VESSEL_ERR_4."
+    },
+    "retrieved_sops": [
+      {
+        "content": "Title: VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice\n\nOverview:\nError Code: VESSEL_ERR_4\nModule: Vessel Advice Service (VAS)\nDescription: This error occurs when attempting to create a new vessel advice with a vessel name that is already in use by another active vessel advice record.\n\nResolution Steps:\n1. Query the database to check for active vessel advice with the given system_vessel_name:\n   SELECT vessel_advice_no, system_vessel_name, effective_start_datetime, effective_end_datetime\n   FROM vessel_advice\n   WHERE system_vessel_name = :system_vessel_name\n   AND effective_end_datetime IS NULL;\n\n2. Decision Logic:\n   - If no active vessel advice found: Escalate to L3 (unusual case)\n   - If active vessel advice found:\n     a. Check if there are active berth applications linked to this vessel advice:\n        SELECT * FROM berth_application\n        WHERE vessel_advice_no = :active_vessel_advice_no\n        AND status = 'Active';\n\n     b. Decision Logic:\n        - If no active berth applications: Safe to expire the vessel advice\n          Generate SQL: UPDATE vessel_advice SET effective_end_datetime = :timestamp WHERE vessel_advice_no = :vessel_advice_no;\n        - If active berth applications exist: Cannot expire automatically, escalate to L3\n\nVerification Steps:\n- After executing the UPDATE, verify effective_end_datetime is set\n- Retry creating the new vessel advice\n- Confirm customer can now create vessel advice successfully",
+        "metadata": {
+          "sop_title": "VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice",
+          "module": "VAS",
+          "error_code": "VESSEL_ERR_4",
+          "chunk_type": "resolution"
+        },
+        "score": 0.92
+      }
+    ],
+    "retrieval_summary": "Retrieved 1 relevant SOP(s) for incident ALR-861631. Top match: VAS: VESSEL_ERR_4 (similarity score: 0.92)"
+  },
+  "selected_sop_title": "VAS: VESSEL_ERR_4 Vessel Name has been used by other vessel advice",
+  "executed_steps": [
+    {
+      "step_description": "Step 1: \nInvoking: `execute_sql_query` with `SELECT vessel_advice_no, system_vessel_name, effective_start_datetime, effective_end_datetime FROM vessel_advice WHERE system_vessel_name = :system_vessel_name AND effective_end_datetime IS NULL;`\n\n\n",
+      "tool_called": "execute_sql_query",
+      "tool_input": {
+        "input": "SELECT vessel_advice_no, system_vessel_name, effective_start_datetime, effective_end_datetime FROM vessel_advice WHERE system_vessel_name = :system_vessel_name AND effective_end_datetime IS NULL;"
+      },
+      "tool_output": "{\"error\": \"Database interface not available\", \"note\": \"This is a mock response. In production, provide a DatabaseInterface instance.\"}",
+      "status": "Failure",
+      "summary": "Step 1: execute_sql_query failed"
+    }
+  ],
+  "proposed_sql_action": null,
+  "next_action_description": "Review the execution steps and determine appropriate next action.",
+  "final_status": "Failed"
+}

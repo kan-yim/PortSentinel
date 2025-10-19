@@ -19,9 +19,9 @@
   },
   "expanded_queries": [
     "EDI message stuck in ERROR status, no acknowledgment received | Module: EDI/API | Entities: correlation_id: EDI-MSG-789456",
-    "EDI transaction remains in error state without receiving acknowledgment | System: EDI/API | correlation_id: EDI-MSG-789456",
-    "EDI message processing failure due to missing acknowledgment in EDI/API module | correlation_id: EDI-MSG-789456",
-    "Troubleshooting EDI message error status caused by absent acknowledgment | Affected area: EDI/API | correlation_id: EDI-MSG-789456"
+    "EDI transaction halted with error state, missing acknowledgment response | EDI/API module | correlation_id: EDI-MSG-789456",
+    "Failed EDI message processing due to absent ACK, error status observed | EDI/API system | correlation_id: EDI-MSG-789456",
+    "EDI message processing failure, no acknowledgment received, error flagged | Module: EDI/API | correlation_id: EDI-MSG-789456"
   ],
   "retrieved_sops": [
     {
@@ -34,26 +34,26 @@
     },
     {
       "Title": "EDI: Spike in DLQ messages after routine maintenance; consumer group lag increased across EDI topic",
-      "Overview": "Spike in DLQ messages after routine maintenance; consumer group lag increased across EDI topic. Partner PARTNER_ID reported delayed acknowledgements; LOCATION ops not impacted.",
+      "Overview": "Spike in DLQ messages after routine maintenance; consumer group lag increased across EDI topic. Partner PARTNER_ID reported delayed acknowledgements; LOCATION ops not impacted. Context tokens: CONTEXT_TOKEN1, CONTEXT_TOKEN2.",
       "Preconditions": null,
-      "Resolution": "1. Corrected cron schedule to UTC; added mutual exclusion lock and run-idempotency; published sanitized incident note and fixed dashboards.\n2. Communications used masked ticket references where applicable.\n3. Locate the problematic EDI message/file and quarantine it.\n4. Validate structure and partner-specific rules.\n4.1 Run schema validator (segments/qualifiers/max-occurrence).\n4.2 Fix qualifier mapping or split oversized occurrences.\n5. Correct normalization/mapping and reprocess safely.\n5.1 Use idempotency token to prevent duplicates.\n5.2 Re-ingest from quarantine and monitor translator logs.",
-      "Verification": "1. Confirm next run processed successfully; no duplicates.\n2. Verify partner ACK/CONTRL is archived.\n3. Attach validator logs and sanitized sample.",
+      "Resolution": "1. Corrected cron schedule to UTC; added mutual exclusion lock and run-idempotency; published sanitized incident note and fixed dashboards.\n2. Communications used masked ticket references where applicable.\n3. Reproduce the failing call on a safe test entity.\n3.1 Use read-only token; capture status code and latency.\n3.2 Record request ID/correlation ID for log search.\n4. Check API gateway/service health around the incident window.\n5. Review auth and permissions for the calling user/client.\n5.1 Refresh/rotate token; confirm scopes.\n5.2 Verify NTP/clock skew; resync if >2 seconds.",
+      "Verification": "1. Re-run the endpoint; expect 2xx and correct JSON fields.\n2. Observe error rate and latency for 30 minutes; under baseline.\n3. Attach request/response evidence to the case.",
       "Module": "EDI/API"
     },
     {
-      "Title": "EDI: Translator rejected ANSI X12 301: missing BGM count alignment (UNH/UNT mismatch)",
-      "Overview": "Translator rejected ANSI X12 301: missing BGM count alignment (UNH/UNT mismatch). Partner PARTNER_ID interchange quarantined; downstream milestone not created.",
+      "Title": "EDI: Rate limiter throttled legitimate traffic after load surge",
+      "Overview": "Rate limiter throttled legitimate traffic after load surge. Hot keys on '/webhooks/delivery/DELIVERY_ID' created cache stampede; error budget burned for the window.",
       "Preconditions": null,
-      "Resolution": "1. Added de-duplication keyed by (controlNumber, docType, equipmentId, eventType); instated rule to discard stale duplicates; replayed healthy messages.\n2. Communications used masked ticket references where applicable.\n3. Locate the problematic EDI message/file and quarantine it.\n4. Validate structure and partner-specific rules.\n4.1 Run schema validator (segments/qualifiers/max-occurrence).\n4.2 Fix qualifier mapping or split oversized occurrences.\n5. Correct normalization/mapping and reprocess safely.\n5.1 Use idempotency token to prevent duplicates.\n5.2 Re-ingest from quarantine and monitor translator logs.",
-      "Verification": "1. Confirm next run processed successfully; no duplicates.\n2. Verify partner ACK/CONTRL is archived.\n3. Attach validator logs and sanitized sample.",
+      "Resolution": "1. Scaled read replicas and split hot key namespaces; added half-open probes to breaker; restored normal delivery and rebuilt backlog safely.\n2. Communications used masked ticket references where applicable.\n3. Reproduce the failing call on a safe test entity.\n3.1 Use read-only token; capture status code and latency.\n3.2 Record request ID/correlation ID for log search.\n4. Check API gateway/service health around the incident window.\n5. Review auth and permissions for the calling user/client.\n5.1 Refresh/rotate token; confirm scopes.\n5.2 Verify NTP/clock skew; resync if >2 seconds.",
+      "Verification": "1. Re-run the endpoint; expect 2xx and correct JSON fields.\n2. Observe error rate and latency for 30 minutes; under baseline.\n3. Attach request/response evidence to the case.",
       "Module": "EDI/API"
     }
   ],
   "retrieval_summary": "Retrieved 3 SOP(s) for incident EDI-001 using hybrid search (BM25 + Vector + Multi-Query + RRF + Rerank). Generated 4 query variants. Processed 10 candidates after RRF. Top match: EDI: EDI Message Timeout or Delay in Acknowledgment Affected module: EDI/API",
   "retrieval_metrics": {
     "num_expanded_queries": 4,
-    "num_bm25_candidates": 32,
-    "num_vector_candidates": 23,
+    "num_bm25_candidates": 36,
+    "num_vector_candidates": 21,
     "num_merged_candidates": 23,
     "num_after_rrf": 10,
     "num_final_results": 3,

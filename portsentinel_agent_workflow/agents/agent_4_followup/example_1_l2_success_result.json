@@ -1,0 +1,96 @@
+{
+  "original_execution_result": {
+    "original_context": {
+      "original_report": {
+        "incident_id": "TEST-DB-001",
+        "source_type": "Email",
+        "received_timestamp_utc": "2025-10-18T14:38:38.854750",
+        "reported_timestamp_hint": null,
+        "urgency": "Low",
+        "affected_module": "Vessel",
+        "entities": [
+          {
+            "type": "ERROR_CODE",
+            "value": "VESSEL_ERR_4"
+          }
+        ],
+        "error_code": "VESSEL_ERR_4",
+        "problem_summary": "Testing database connectivity with vessel advice query",
+        "potential_cause_hint": null,
+        "raw_text": "Test incident for database connectivity"
+      },
+      "expanded_queries": [],
+      "retrieved_sops": [
+        {
+          "content": "Title: Database Connectivity Test\n\nResolution Steps:\n1. Query the vessel_advice table to verify database access\n2. List first 5 vessel advice records\n3. Verify query results are returned correctly\n\nThis is a test SOP to verify database connectivity.",
+          "metadata": {
+            "sop_title": "Database Connectivity Test",
+            "module": "Vessel",
+            "test": true
+          },
+          "score": 1.0
+        }
+      ],
+      "retrieval_summary": "Test SOP for database connectivity",
+      "retrieval_metrics": null
+    },
+    "selected_sop_title": "Database Connectivity Test",
+    "executed_steps": [
+      {
+        "step_description": "Step 1: \nInvoking: `execute_sql_query` with `SELECT * FROM vessel_advice LIMIT 5`\n\n\n",
+        "tool_called": "execute_sql_query",
+        "tool_input": {
+          "input": "SELECT * FROM vessel_advice LIMIT 5"
+        },
+        "tool_output": "[\n  {\n    \"vessel_advice_no\": 1000010400,\n    \"vessel_name\": \"MV Merlion 12\",\n    \"system_vessel_name\": \"MV Merlion 12\",\n    \"effective_start_datetime\": \"2025-08-01T00:00:00\",\n    \"effective_end_datetime\": \"2025-09-01T00:00:00\",\n    \"created_at\": \"2025-10-18T21:17:23\",\n    \"system_vessel_name_active\": null\n  },\n  {\n    \"vessel_advice_no\": 1000010500,\n    \"vessel_name\": \"MV Lion City 08\",\n    \"system_vessel_name\": \"MV Lion City 08\",\n    \"effective_start_datetime\": \"2025-09-15T00:00:00\",\n    \"effective_end_datetime\": \"2025-10-01T00:00:00\",\n    \"created_at\": \"2025-10-18T21:17:23\",\n    \"system_vessel_name_active\": null\n  },\n  {\n    \"vessel_advice_no\": 1000010600,\n    \"vessel_name\": \"MV Merlion 12\",\n    \"system_vessel_name\": \"MV Merlion 12\",\n    \"effective_start_datetime\": \"2025-09-05T00:00:00\",\n    \"effective_end_datetime\": \"2025-09-20T00:00:00\",\n    \"created_at\": \"2025-10-18T21:17:23\",\n    \"system_vessel_name_active\": null\n  },\n  {\n    \"vessel_advice_no\": 1000010700,\n    \"vessel_name\": \"MV Merlion 15\",\n    \"system_vessel_name\": \"MV Merlion 15\",\n    \"effective_start_datetime\": \"2025-09-10T00:00:00\",\n    \"effective_end_datetime\": \"2025-09-25T00:00:00\",\n    \"created_at\": \"2025-10-18T21:17:23\",\n    \"system_vessel_name_active\": null\n  },\n  {\n    \"vessel_advice_no\": 1000010960,\n    \"vessel_name\": \"MV Lion City 07\",\n    \"system_vessel_name\": \"MV Lion City 07\",\n    \"effective_start_datetime\": \"2025-10-01T00:00:00\",\n    \"effective_end_datetime\": null,\n    \"created_at\": \"2025-10-18T21:17:23\",\n    \"system_vessel_name_active\": \"MV Lion City 07\"\n  }\n]",
+        "status": "Success",
+        "summary": "Step 1: Used execute_sql_query"
+      }
+    ],
+    "proposed_sql_action": null,
+    "next_action_description": "SOP execution completed successfully. Verify the resolution with the customer.",
+    "final_status": "Completed Successfully"
+  },
+  "l2_status": {
+    "execution_success": true,
+    "execution_timestamp": "2025-10-19T03:48:19.925382",
+    "time_elapsed_hours": 2.5,
+    "execution_notes": "Successfully executed the proposed SQL statement. Verified vessel advice is now expired.",
+    "timeout_threshold_hours": 24.0,
+    "is_timeout": false
+  },
+  "escalation_required": false,
+  "escalation_contact": null,
+  "escalation_email": null,
+  "resolution_summary": {
+    "incident_id": "TEST-DB-001",
+    "error_identified": "VESSEL_ERR_4: Testing database connectivity with vessel advice query",
+    "root_cause": "Root Cause Analysis:  \nThe error VESSEL_ERR_4 occurred due to a failure in establishing a proper connection between the application and the vessel advice database, likely caused by incorrect or outdated connection parameters. This prevented the system from retrieving necessary data, triggering the connectivity test to identify and resolve the misconfiguration.",
+    "resolution_attempted": "SOP Applied: Database Connectivity Test\n\nSteps Executed (1):\n  1. Step 1: Used execute_sql_query\n\nRecommended Action: SOP execution completed successfully. Verify the resolution with the customer.",
+    "resolution_outcome": "Resolved Successfully",
+    "actions_taken": [
+      "Parsed incident report (ID: TEST-DB-001)",
+      "Retrieved relevant SOP: Database Connectivity Test",
+      "Step 1: Used execute_sql_query",
+      "L2 successfully executed resolution"
+    ],
+    "timeline": [
+      {
+        "time": "2025-10-18T14:38:38.854750",
+        "event": "Incident reported"
+      },
+      {
+        "time": "2025-10-19T03:48:20.420736",
+        "event": "SOP executed (1 steps)"
+      },
+      {
+        "time": "2025-10-19T03:48:19.925382",
+        "event": "L2 execution succeeded"
+      }
+    ],
+    "escalated_to_l3": false,
+    "escalation_contact": null,
+    "lessons_learned": null,
+    "generated_at": "2025-10-19T03:48:21.622520"
+  }
+}

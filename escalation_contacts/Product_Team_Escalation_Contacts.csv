@@ -1,0 +1,6 @@
+﻿Module,Product Ops/Managers,Role,Escalation Steps,Email
+Container (CNTR),Mark Lee – Product Ops Manager,Oversee Container-related issues,"1. Notify Product Duty immediately. 2. If unresolved, escalate to Manager on-call. 3. Engage SRE/Infra team if needed.",mark.lee@psa123.com
+Vessel (VS),Jaden Smith – Vessel Operations,Vessel management and troubleshooting,"1. Notify Vessel Duty team. 2. If no response, escalate to Senior Ops Manager. 3. Engage Vessel Static team for further diagnostics.",jaden.smith@psa123.com
+EDI/API (EA),Tom Tan – EDI/API Support,"Handle EDI/API issues (message validation, communication errors)","1. Contact EDI/API team via on-call channel. 2. In case of API failures, escalate to Infra/SRE. 3. Engage partner if issue persists.",tom.tan@psa123.com
+Others,Jacky Chan – Infra/SRE Support Lead,"System infrastructure issues (e.g., latency, network)","1. If system error detected, immediately engage Infra team. 2. Escalate to Jacky Chan (SRE) for urgent cases.",jacky.chan@psa123.com
+Others,PSA Helpdesk,General helpdesk for inquiries and non-technical issues,"1. For non-urgent queries, escalate to team lead. 2. For emergency issues, direct to on-call ops.",support@psa123.com

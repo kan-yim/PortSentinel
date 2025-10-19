@@ -1,0 +1,41 @@
+To: jaden.smith@psa123.com
+Subject: Escalation: VESSEL_ERR_4 - TEST-DB-001
+Priority: High
+
+Dear Team,
+
+I am escalating the following incident for your attention and further investigation.
+
+**INCIDENT DETAILS**
+-------------------
+Incident ID:          TEST-DB-001
+Error Code:           VESSEL_ERR_4
+Error Description:    Testing database connectivity with vessel advice query
+Escalation Reason:    L2 timeout - No response after 26.0 hours
+
+**RESOLUTION ATTEMPTED**
+------------------------
+SOP Applied: Database Connectivity Test
+
+Steps Executed (1):
+  1. Step 1: Used execute_sql_query
+
+Recommended Action: SOP execution completed successfully. Verify the resolution with the customer.
+
+**L2 EXECUTION NOTES**
+----------------------
+No response from L2 team after 26 hours.
+
+**NEXT STEPS REQUIRED**
+-----------------------
+Please review the above information and take appropriate action to resolve this issue.
+If you need any additional information or clarification, please do not hesitate to contact me.
+
+**URGENCY**
+-----------
+This issue requires prompt attention to minimize customer impact.
+
+Thank you for your assistance.
+
+Best regards,
+PORTNET Incident Management System
